@@ -10,3 +10,4 @@ MIN_EDGE = 0.05  # minimum gross edge to consider a signal, Edge is models predi
 MIN_EFFECTIVE_EDGE = 0.02  # minimum edge after spread + fees, the edge minus sprea(ask price -bidprice = bid/askprice on Polymarket) - fee_rate , act ifeffective egde is positive and above this threshold
 FRACTIONAL_KELLY = 0.25  # κ take edge/net deciaml odds and multiply by this fraction to get the bet size, 0.25 is a conservative approach to reduce risk of ruin
 FEE_RATE = 0.02  # Polymarket platform fee (~2%), fee rate on polymarket
+MAX_NULL_GAP = 5  # Maximum number of consecutive null values allowed in the data before discarding the data, if there are more than this number of consecutive nulls, discard the data

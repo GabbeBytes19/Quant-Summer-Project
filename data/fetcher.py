@@ -1,10 +1,10 @@
-import polars
+import polars as pl
 import requests
 
 from config import settings
 
 
-def fetch_data(start_date: str, end_date: str) -> polars.DataFrame:
+def fetch_data(start_date: str, end_date: str) -> pl.DataFrame:
     items = {
         "latitude": settings.LATITUDE,
         "longitude": settings.LONGITUDE,
@@ -17,7 +17,7 @@ def fetch_data(start_date: str, end_date: str) -> polars.DataFrame:
     try:
         data_json = requests.get(url, params=items, timeout=10)
         data = data_json.json()
-        df = polars.DataFrame(data)
+        df = pl.DataFrame(data)
         return df
     except Exception as e:
         print(f"Error fetching data from {url} with params {items}: {e}")
