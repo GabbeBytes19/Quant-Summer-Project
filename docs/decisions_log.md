@@ -38,8 +38,10 @@ Format per entry:
 - **Reason:** Notebooks for research thinking, .py modules for production logic. This is how real quant teams work. Mixing them makes the repo look like a student project.
 - **Date:** 2026-06-28
 
----
-
+### Decision: Use polar insead of pandas
+- ** Polar should be used for dataset
+- ** Reason: ** Polar are much faster, slepless integration without copying. 
+- **Date:** 2026-06-29
 ## Models
 
 *(Fill in as you make modeling decisions)*

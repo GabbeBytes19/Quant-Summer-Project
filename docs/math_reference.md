@@ -1,7 +1,7 @@
 # Math Reference
 
 Key formulas used in the system. This is the source of truth — implement exactly these.
-
+### Should be written in LateX, but that goes later
 ---
 
 ## Probability & Events

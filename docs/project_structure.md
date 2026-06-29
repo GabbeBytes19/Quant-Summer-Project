@@ -70,7 +70,7 @@ Quant-Summer-Project/
 
 ```
 numpy
-pandas
+Polars
 scipy
 matplotlib
 seaborn
