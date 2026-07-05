@@ -19,7 +19,7 @@ def fetch_data(start_date: str, end_date: str) -> pl.DataFrame:
         data = data_json.json()
         if "error" in data:
             raise ValueError(data["reason"])
-        print(data.keys())
+        #print(data.keys())
         df = pl.DataFrame(data["daily"])
         return df
         
