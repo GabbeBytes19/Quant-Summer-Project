@@ -21,3 +21,13 @@ def add_event_column(df):
     )
 
     return df
+
+
+def filter_summer(df):
+    summer_months = [6,7,8]
+    df_months = df.with_columns(
+    pl.col("time").str.to_date().alias("date")
+    ).with_columns(
+    pl.col("date").dt.month().alias("month")
+    )
+    return df_months.filter(pl.col("month").is_in(summer_months))
