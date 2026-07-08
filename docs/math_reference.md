@@ -6,15 +6,17 @@ Key formulas used in the system. This is the source of truth — implement exact
 
 ## Probability & Events
 
-### Event Probability (from distribution)
+### Bucket Probability (from distribution)
 ```
-P(X > threshold) = ∫_threshold^∞ f(x) dx
+P(a < X ≤ b) = ∫_a^b f(x) dx
 ```
-In practice: `1 - CDF(threshold)` for parametric models, numerical integration for KDE.
+In practice: `CDF(b) - CDF(a)` for parametric models, numerical integration for KDE.
 
-### Gaussian probability
+Used to match Polymarket bucket structure — each 1°C bucket (e.g. "32°C" = [31.5, 32.5)) is a binary YES/NO contract.
+
+### Gaussian bucket probability
 ```
-P(X > t) = 1 - Φ((t - μ) / σ)
+P(a < X ≤ b) = Φ((b - μ) / σ) - Φ((a - μ) / σ)
 ```
 where Φ is the standard normal CDF, μ = historical mean, σ = historical std.
 

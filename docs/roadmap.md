@@ -24,7 +24,7 @@ Goal: a working, calibrated probability model. No Polymarket yet.
 ### Week 2 — Baseline Model
 **Deliverables:**
 - [ ] `models/baseline.py` — historical mean/variance, Gaussian assumption
-- [ ] Binary event defined: e.g. P(T > 25°C on date X)
+- [ ] Bucket probability defined: e.g. P(a < T ≤ b) for each 1°C bucket, matching Polymarket Hong Kong market structure
 - [ ] `notebooks/02_baseline_model.ipynb` — fit Gaussian, compute P(event), visualize
 - [ ] `tests/test_data.py` — validate fetcher output schema
 

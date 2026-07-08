@@ -3,7 +3,7 @@ from scipy.stats import norm
 import numpy as np
 
 
-def gaussian_probability(df_summer,threshold):
+def gaussian_probability(df_summer,bucket_center):
  
     lenght_df = len(df_summer)
 
@@ -11,6 +11,8 @@ def gaussian_probability(df_summer,threshold):
 
     sigma = np.std(df_summer) #Standard deviation of all values
 
-    P = 1 -  norm.cdf((threshold-my)/sigma)  
+    P = norm.cdf((bucket_center+0.5-my)/sigma) -norm.cdf((bucket_center-0.5-my)/sigma) #Probability of the event happening between threshold_a and threshold_b
     
     return P,my,sigma
+
+
