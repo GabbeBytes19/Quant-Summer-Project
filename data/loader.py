@@ -31,3 +31,11 @@ def filter_summer(df):
     pl.col("date").dt.month().alias("month")
     )
     return df_months.filter(pl.col("month").is_in(summer_months))
+
+def get_separate_summer_months(df):
+    filtered_df = filter_summer(df)
+    df_june = filtered_df.filter(pl.col("month") == 6)
+    df_july = filtered_df.filter(pl.col("month") == 7)
+    df_august= filtered_df.filter(pl.col("month") == 8)
+    
+    return df_june, df_july, df_august
