@@ -23,24 +23,24 @@ GET https://archive-api.open-meteo.com/v1/archive
 ### Key parameters
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `latitude` | e.g. 58.41 | City latitude |
-| `longitude` | e.g. 15.62 | City longitude (Linköping example) |
+| `latitude` | e.g. 22.32 | City latitude |
+| `longitude` | e.g. 114.17 | City longitude (Hong Kong example) |
 | `start_date` | YYYY-MM-DD | Start of historical range |
 | `end_date` | YYYY-MM-DD | End of historical range |
 | `daily` | `temperature_2m_max` | Max daily temp at 2m height |
 | `daily` | `temperature_2m_min` | Min daily temp |
 | `daily` | `precipitation_sum` | Daily precipitation (mm) |
-| `timezone` | `Europe/Stockholm` | Timezone for date alignment |
+| `timezone` | `Asia/Hong_Kong` | Timezone for date alignment |
 
 ### Example request
 ```
 https://archive-api.open-meteo.com/v1/archive
-  ?latitude=58.41
-  &longitude=15.62
+  ?latitude=22.32
+  &longitude=114.17
   &start_date=2015-01-01
   &end_date=2024-12-31
   &daily=temperature_2m_max,temperature_2m_min,precipitation_sum
-  &timezone=Europe%2FStockholm
+  &timezone=Asia%2FHong_Kong
 ```
 
 ### Response schema
@@ -73,13 +73,13 @@ Returns 7–16 day forecast from current date. Use for Phase 3 live execution.
 ```
 event = 1  if temperature_2m_max > threshold  else  0
 ```
-Recommended starting threshold: **25°C** (warm summer day).
+Recommended starting threshold: **30°C** (typical Hong Kong summer day).
 This gives a roughly balanced class distribution in summer months.
 
 ### Suggested cities + coordinates
 | City | Latitude | Longitude |
 |------|----------|-----------|
-| Linköping | 58.41 | 15.62 |
+| Hong Kong | 22.32 | 114.17 |
 | Stockholm | 59.33 | 18.07 |
 | London | 51.51 | -0.13 |
 | New York | 40.71 | -74.01 |
@@ -126,14 +126,14 @@ This means the Phase 2 backtest will have a short history — that is expected a
 
 ## Config values (stored in `config/settings.py`)
 ```python
-DEFAULT_CITY = "Linköping"
-LATITUDE = 58.41
-LONGITUDE = 15.62
-TIMEZONE = "Europe/Stockholm"
+DEFAULT_CITY = "Hong Kong"
+LATITUDE = 22.32
+LONGITUDE = 114.17
+TIMEZONE = "Asia/Hong_Kong"
 HISTORICAL_START = "2015-01-01"     # for actuals (Open-Meteo archive)
 HISTORICAL_END = "2024-12-31"       # for actuals
 POLYMARKET_START = "2024-01-01"     # Polymarket data only reliable from ~2024
-EVENT_THRESHOLD = 25.0              # °C
+EVENT_THRESHOLD = 30.0              # °C
 MIN_EDGE = 0.05                     # minimum gross edge to consider a signal
 MIN_EFFECTIVE_EDGE = 0.02           # minimum edge after spread + fees
 FRACTIONAL_KELLY = 0.25             # κ
