@@ -15,16 +15,14 @@ def test_columns_correct():
 
 def test_checks_nulls():
     df = fetcher.fetch_data("2024-01-01", "2024-01-10")
-    assert cleaner.clean_data(df) is not None
-
+    print(cleaner.clean_data(df).null_count().to_numpy)
+    res = cleaner.clean_data(df)
+    assert res.null_count().pipe(sum).item() == 0
 def test_date_is_valid():
-    assert settings.start_date[0:4] >= settings.HISTORICAL_START[0:4]
-    if settings.start_date[0:4] == settings.HISTORICAL_START[0:4]:
-        assert settings.start_date[5:7] >= settings.HISTORICAL_START[5:7]
-        if settings.start_date[5:7] == settings.HISTORICAL_START[5:7]:
-            assert settings.start_date[8:10] >= settings.HISTORICAL_START[8:10] 
+    assert settings.HISTORICAL_END >= settings.HISTORICAL_START
 
 def test_date_is_in_range_end():
     df = fetcher.fetch_data("2024-01-01", "2024-01-10")
     assert df["time"].max() <= settings.HISTORICAL_END
     assert df["time"].min() >= settings.HISTORICAL_START
+
