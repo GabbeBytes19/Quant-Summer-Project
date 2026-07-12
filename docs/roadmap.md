@@ -25,7 +25,7 @@ Goal: a working, calibrated probability model. No Polymarket yet.
 **Deliverables:**
 - [ ] `models/baseline.py` — historical mean/variance, Gaussian assumption
 - [ ] Bucket probability defined: e.g. P(a < T ≤ b) for each 1°C bucket, matching Polymarket Hong Kong market structure
-- [ ] `notebooks/02_baseline_model.ipynb` — fit Gaussian, compute P(event), visualize
+- [ ] `notebooks/02_Baseline_Model.ipynb` — fit Gaussian, compute P(event), visualize
 - [ ] `tests/test_data.py` — validate fetcher output schema
 
 **Definition of done:** Given a date, baseline model returns a probability between 0 and 1.
@@ -36,8 +36,9 @@ Goal: a working, calibrated probability model. No Polymarket yet.
 **Deliverables:**
 - [ ] `models/kde_model.py` — KDE fit, event probability via integration
 - [ ] `models/bayesian_model.py` — prior + likelihood → posterior update
-- [ ] `notebooks/03_bayesian_inference.ipynb` — step-by-step: prior, likelihood, posterior
-- [ ] `notebooks/04_model_comparison.ipynb` — baseline vs KDE vs Bayesian side-by-side
+- [ ] `notebooks/03_KDE_Model.ipynb` — KDE fit, bucket probability, compare vs Gaussian baseline
+- [ ] `notebooks/04_Bayesian_Inference.ipynb` — step-by-step: prior, likelihood, posterior
+- [ ] `notebooks/06_Model_Comparison.ipynb` — baseline vs KDE vs Bayesian side-by-side
 
 **Definition of done:** Three models each return P(event). You can explain which fits better and why.
 
@@ -48,7 +49,7 @@ Goal: a working, calibrated probability model. No Polymarket yet.
 - [ ] `evaluation/scoring.py` — Brier score, log loss, ECE
 - [ ] `evaluation/calibration.py` — reliability diagrams, calibration curves
 - [ ] Explicit IS/OOS split: 2015–2020 = In-Sample (training), 2021–2024 = Out-of-Sample (evaluation)
-- [ ] `notebooks/05_calibration_analysis.ipynb` — full calibration analysis of all three models on OOS data only
+- [ ] `notebooks/05_Calibration_Analysis.ipynb` — full calibration analysis of all three models on OOS data only
 - [ ] `tests/test_scoring.py` — edge cases (p=0, p=1, perfect predictions)
 - [ ] `tests/test_bayesian.py` — posterior sums to 1, updates in correct direction
 
@@ -77,7 +78,7 @@ Goal: bring in Polymarket, detect mispricing, size positions.
 - [ ] `data/fetcher.py` extended — pull Polymarket market odds for matching events
 - [ ] `pricing/fair_value.py` — model probability → fair value price
 - [ ] `pricing/edge.py` — edge = P_model - P_market
-- [ ] `notebooks/06_risk_analysis_kelly.ipynb` (partial) — plot edge over time
+- [ ] `notebooks/08_Risk_Analysis_Kelly.ipynb` (partial) — plot edge over time
 
 **Definition of done:** For a given date, you can compute edge between your model and Polymarket.
 
@@ -90,7 +91,7 @@ Goal: bring in Polymarket, detect mispricing, size positions.
 - [ ] Transaction costs wired in: `config/settings.py` → `FEE_RATE`, spread deducted in `backtest/pnl.py`
 - [ ] `pricing/edge.py` — compute both gross edge and effective_edge (after spread + fees)
 - [ ] `tests/test_kelly.py` — f* never > 1.0 or < 0, behaves correctly at edge=0, returns 0 when effective_edge ≤ 0
-- [ ] `notebooks/06_risk_analysis_kelly.ipynb` (complete) — Kelly sizing + sensitivity analysis, show how spread kills thin-edge trades
+- [ ] `notebooks/08_Risk_Analysis_Kelly.ipynb` (complete) — Kelly sizing + sensitivity analysis, show how spread kills thin-edge trades
 
 **Definition of done:** Given an edge and spread, system computes effective_edge and only sizes a position when effective_edge > 0. You can show how f* changes with edge and odds.
 
@@ -105,7 +106,7 @@ Goal: end-to-end backtest, optional live execution.
 **Deliverables:**
 - [ ] `backtest/engine.py` — walk-forward loop, strict IS/OOS boundary enforced in code
 - [ ] `backtest/pnl.py` — P&L tracking with transaction costs deducted, Sharpe ratio, max drawdown
-- [ ] `notebooks/07_full_backtest.ipynb` — run full backtest; clearly label IS vs OOS periods on all plots
+- [ ] `notebooks/07_Full_Backtest.ipynb` — run full backtest; clearly label IS vs OOS periods on all plots
 - [ ] Note Polymarket data constraint in notebook: Phase 2 edge backtest limited to ~2024 onwards
 
 **Definition of done:** System simulates historical decisions and produces a P&L curve with statistics. IS and OOS results are reported separately. Transaction costs are visible in the P&L breakdown.

@@ -1,8 +1,9 @@
+from datetime import datetime
 DEFAULT_CITY = "Hong Kong"  # Place
 LATITUDE = 22.3020  # Latidue in the world
 LONGITUDE = 114.1743  # Longtidue in the world
 TIMEZONE = "Asia/Hong_Kong"  # Timezone
-HISTORICAL_START = "2024-11-29"  # for actuals (Open-Meteo archive)
+HISTORICAL_START = "2022-11-29"  # for actuals (Open-Meteo archive)
 HISTORICAL_END = "2024-12-25"  # for actuals
 POLYMARKET_START = "2024-01-01"  # Polymarket data only reliable from ~2024
 EVENT_THRESHOLD = 30.0  # °C #Makes a binary event if the max daily temp at 2 meters is above this threshold
@@ -11,4 +12,4 @@ MIN_EFFECTIVE_EDGE = 0.02  # minimum edge after spread + fees, the edge minus sp
 FRACTIONAL_KELLY = 0.25  # κ take edge/net deciaml odds and multiply by this fraction to get the bet size, 0.25 is a conservative approach to reduce risk of ruin
 FEE_RATE = 0.02  # Polymarket platform fee (~2%), fee rate on polymarket
 MAX_NULL_GAP = 5  # Maximum number of consecutive null values allowed in the data before discarding the data, if there are more than this number of consecutive nulls, discard the data
-
+TOMMORROWS_DATE = datetime.date.today() + datetime.timedelta(days=1)

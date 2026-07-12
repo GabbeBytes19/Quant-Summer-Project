@@ -53,12 +53,13 @@ Quant-Summer-Project/
 │
 ├── notebooks/
 │   ├── 01_data_exploration.ipynb       # Phase 1 — explore raw weather data
-│   ├── 02_baseline_model.ipynb         # Phase 1 — fit baseline, compute P(event)
-│   ├── 03_bayesian_inference.ipynb     # Phase 1 — step-by-step Bayesian update
-│   ├── 04_model_comparison.ipynb       # Phase 1 — baseline vs KDE vs Bayesian
-│   ├── 05_calibration_analysis.ipynb   # Phase 1 — Brier, log loss, reliability diagrams
-│   ├── 06_risk_analysis_kelly.ipynb    # Phase 2 — Kelly sizing, drawdown analysis
-│   └── 07_full_backtest.ipynb          # Phase 2/3 — full system simulation
+│   ├── 02_Baseline_Model.ipynb         # Phase 1 — fit baseline, compute P(event)
+│   ├── 03_KDE_Model.ipynb              # Phase 1 — KDE fit, bucket probability, compare vs Gaussian baseline
+│   ├── 04_Bayesian_Inference.ipynb     # Phase 1 — step-by-step Bayesian update
+│   ├── 05_Calibration_Analysis.ipynb   # Phase 1 — Brier, log loss, reliability diagrams
+│   ├── 06_Model_Comparison.ipynb       # Phase 1 — baseline vs KDE vs Bayesian
+│   ├── 07_Full_Backtest.ipynb          # Phase 2/3 — full system simulation
+│   └── 08_Risk_Analysis_Kelly.ipynb    # Phase 2 — Kelly sizing, drawdown analysis
 │
 ├── run_experiment.py       # top-level reproducibility script — runs full pipeline
 ├── .env                    # API keys (gitignored)
