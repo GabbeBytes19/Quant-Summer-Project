@@ -44,7 +44,15 @@ Format per entry:
 - **Date:** 2026-06-29
 ## Models
 
-*(Fill in as you make modeling decisions)*
+### Decision: Use Open-Meteo's Historical Forecast API (historical-forecast-api.open-meteo.com) for σ_forecast estimation
+- **Alternatives considered:** the standard live Forecast API's rolling past_days/forecast_days window (only ~90 days, mistakenly hit first); a placeholder/assumed forecast-uncertainty value instead of real data; a different third-party weather API (e.g. Meteostat, Visual Crossing)
+- **Reason:** The Bayesian model's likelihood needs σ_forecast (how far off forecasts typically are), estimated by pairing historical forecast values against actual outcomes for the same dates. Initially hit what looked like a ~90-day data constraint, but that came from calling the wrong Open-Meteo product (the live forecast endpoint's short rolling window). The correct dedicated endpoint for this, `historical-forecast-api.open-meteo.com/v1/forecast`, allows dates from 2016-01-01 to the present (~10 years) — far more than needed for a solid estimate. Usable *paired* data (forecast + known actual) only runs through the current date, not the endpoint's future-facing forecast days. No other API needed.
+- **Date:** 2026-07-13
+
+### Decision: Superseded above — use Open-Meteo's Previous Runs API (hourly, lead-time-specific) instead of Historical Forecast API for σ_forecast
+- **Alternatives considered:** continuing with the Historical Forecast API's `daily=temperature_2m_max` endpoint (see decision above); falling back to an assumed/placeholder σ_forecast value instead of real data; a different third-party weather API
+- **Reason:** After pairing `predicted_temp` against `actual_temp` for ~9 years of data, every single day came back with *exactly* zero error — not close, identical. Root cause: the Historical Forecast API's plain daily endpoint stitches together the first hours of each successive model run into a continuous timeseries that closely tracks actual conditions — it's effectively a near-real-time reconstruction, not a genuine N-days-ahead forecast, which is why it matched the archive/actuals almost exactly. The Previous Runs API instead gives genuine lead-time-specific forecasts via hourly parameters with a suffix (e.g. `temperature_2m_previous_day1` = value predicted 24h before valid time, up to `_previous_day7`). This requires aggregating 24 hourly values per day into a daily max, and accepting a much shorter available history (~2021 for GFS, ~2024 for other models, vs. the ~2016+ depth the Historical Forecast API appeared to offer). Chose to build this properly with real hourly data rather than fall back to a placeholder value, since a genuinely data-driven estimate was worth the added complexity and reduced sample size.
+- **Date:** 2026-07-13
 
 ---
 
