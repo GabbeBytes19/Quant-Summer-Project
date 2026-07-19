@@ -48,27 +48,7 @@ def get_tommorows_wheather(tommorrows_date):
         print(f"Error fetching data from {url} with params {items}: {e}")
 
 
-def fetch_historical_forecest_data(start_date: str, end_date: str):
-    #What the forecast model predicted whould happend.
-    items,_ = store_data(start_date, end_date)
-    url = "https://historical-forecast-api.open-meteo.com/v1/forecast"
-    
-    try:
-        data_json = requests.get(url, params=items, timeout=10)
-        data = data_json.json()
-        print(data["daily"].keys())
-        print(data)
-        if "error" in data:
-            raise ValueError(data["reason"])
-        #print(data.keys())
-        df_predicted = pl.DataFrame(data["daily"])
-        return df_predicted
-        
-    except Exception as e:
-        print(f"Error fetching data from {url} with params {items}: {e}")
-
-
-def fetch_previous_forecast_data():
+def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame:
     items = {
         "latitude": settings.LATITUDE,
         "longitude": settings.LONGITUDE,
@@ -89,28 +69,33 @@ def fetch_previous_forecast_data():
         print(f"Error fetching data from {url} with params {items}: {e},Kolla vi kom hit hahaha")
 
 
+def get_daily_max():
+    df_previous = fetch_previous_forecast_data(settings.FORECAST_START, settings.FORECAST_END)
+    # Get the daily max temperature for each of the previous days
+    df_daily_max = df_previous.group_by(pl.col("time").str.slice(0, 10).alias("date")).agg(
+    pl.col("temperature_2m_previous_day1").max().alias("daily_max_predicted")).sort("date")
+    return df_daily_max
 
 def pair_dataframes():
     df_actual = fetch_data(settings.FORECAST_START, settings.FORECAST_END)
-    df_predicted = fetch_historical_forecest_data(settings.FORECAST_START, settings.FORECAST_END)
-    df_dates = df_actual.select(pl.col("time").alias("date"))
-    df_actual_temp = df_actual.select(pl.col("temperature_2m_max").alias("actual_temp"))
-    df_predicted_temp = df_predicted.select(pl.col("temperature_2m_max").alias("predicted_temp"))
-    #df_pair = pl.DataFrame([df_dates, df_actual_temp, df_predicted_temp])
-    df_pair = pl.concat([df_dates, df_actual_temp, df_predicted_temp], how="horizontal")
+    df_daily_max_predicted = get_daily_max()
+    df_actual = df_actual.select(
+        pl.col("time").alias("date"),
+        pl.col("temperature_2m_max").alias("actual_temp"),
+    )
+    
+    df_pair = df_actual.join(df_daily_max_predicted, on="date", how="inner").drop_nulls().sort("date")
     return df_pair
 
-def compute_forecast_error(df_pair):
-    #Some of the errors probably gonna work , or both
-    #df_error = df_pair.with_columns( (pl.nth(1)) - (pl.nth(2)))
-    #df_error2 = df_pair.with_columns( pl.col("predicted_temp") - pl.col("actual_temp"))
-    error_list = df_pair.select((pl.col("predicted_temp") - pl.col("actual_temp"))).to_series().to_list()
+def compute_forecast_error():
+    df_pair = pair_dataframes()
+    error_list = df_pair.select((pl.col("daily_max_predicted") - pl.col("actual_temp"))).to_series().to_list()
     mean_error = np.mean(error_list)
     delta_error = 0
     for error in error_list:
         delta_error += (error - mean_error) **2
     res= delta_error / len(error_list)
-    return error_list,math.sqrt(res)
+    return error_list,mean_error,math.sqrt(res)
     
       
 

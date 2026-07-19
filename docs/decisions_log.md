@@ -42,6 +42,12 @@ Format per entry:
 - ** Polar should be used for dataset
 - ** Reason: ** Polar are much faster, slepless integration without copying. 
 - **Date:** 2026-06-29
+
+### Decision: Add synthetic data fixtures for local development instead of hitting the real API every run
+- **Alternatives considered:** just re-running against the live Open-Meteo API each time; mocking the HTTP layer with a library (e.g. `responses`/`requests-mock`)
+- **Reason:** While iterating on `bayesian_model.py` in notebook 04, repeatedly re-running the notebook to catch syntax/logic errors kept hitting Open-Meteo's minutely rate limit (`fetch_data` and `fetch_previous_forecast_data` both failing with "Minutely API request limit exceeded"), which blocked fast iteration. Added `tests/fixtures/synthetic_data.py` with `synthetic_actual_df()` and `synthetic_previous_df()` — fake dataframes matching the exact schema/column names of the real API responses (10 synthetic days, hourly resolution for the forecast side, with a small fixed warm bias baked into the forecast data so it isn't suspiciously perfect). These can be swapped in for the real fetch functions during development (by reassigning `fetcher.fetch_data`/`fetcher.fetch_previous_forecast_data`) so the whole pipeline runs on fake data with zero API calls until the code is confirmed working, then swapped back to the real API.
+- **Date:** 2026-07-19
+
 ## Models
 
 ### Decision: Use Open-Meteo's Historical Forecast API (historical-forecast-api.open-meteo.com) for σ_forecast estimation
@@ -53,6 +59,11 @@ Format per entry:
 - **Alternatives considered:** continuing with the Historical Forecast API's `daily=temperature_2m_max` endpoint (see decision above); falling back to an assumed/placeholder σ_forecast value instead of real data; a different third-party weather API
 - **Reason:** After pairing `predicted_temp` against `actual_temp` for ~9 years of data, every single day came back with *exactly* zero error — not close, identical. Root cause: the Historical Forecast API's plain daily endpoint stitches together the first hours of each successive model run into a continuous timeseries that closely tracks actual conditions — it's effectively a near-real-time reconstruction, not a genuine N-days-ahead forecast, which is why it matched the archive/actuals almost exactly. The Previous Runs API instead gives genuine lead-time-specific forecasts via hourly parameters with a suffix (e.g. `temperature_2m_previous_day1` = value predicted 24h before valid time, up to `_previous_day7`). This requires aggregating 24 hourly values per day into a daily max, and accepting a much shorter available history (~2021 for GFS, ~2024 for other models, vs. the ~2016+ depth the Historical Forecast API appeared to offer). Chose to build this properly with real hourly data rather than fall back to a placeholder value, since a genuinely data-driven estimate was worth the added complexity and reduced sample size.
 - **Date:** 2026-07-13
+
+### Decision: Correct for forecast bias by baking it into the likelihood mean, not by adjusting raw forecasts everywhere
+- **Alternatives considered:** ignore the bias and use the raw forecast value as-is; manually subtract the bias at every call site that uses a forecast value
+- **Reason:** Pairing `day1_max` (previous-runs, 1-day-ahead forecast) against `actual_temp` across 1,860 days gave a mean error of **+0.38°C** (expected ~0 for an unbiased forecast) and a spread of **σ_forecast = 1.18°C**. The +0.38°C indicates a systematic warm bias — forecasts run slightly hotter than what actually happens, on average — separate from σ_forecast, which measures typical day-to-day error size regardless of direction. Since 0.38°C is a non-trivial fraction (~1/3) of σ_forecast, it's worth correcting rather than ignoring. Rather than subtracting the bias manually wherever a forecast value is used, the correction is applied once, inside the likelihood-mean computation for the Bayesian posterior update — so any caller gets an already-debiased estimate.
+- **Date:** 2026-07-19
 
 ---
 

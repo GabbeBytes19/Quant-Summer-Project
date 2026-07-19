@@ -42,6 +42,8 @@ Quant-Summer-Project/
 │   └── loop.py             # async trading loop, order management
 │
 ├── tests/
+│   ├── fixtures/
+│   │   └── synthetic_data.py   # fake Open-Meteo responses (same schema as real API) — avoids rate limits during dev
 │   ├── test_kelly.py       # Kelly never returns f* > 1.0 or < 0
 │   ├── test_scoring.py     # Brier/log-loss edge cases
 │   ├── test_bayesian.py    # posterior sums to 1, updates correctly
