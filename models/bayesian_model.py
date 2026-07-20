@@ -1,7 +1,7 @@
 from scipy.stats import norm
 from data import fetcher
 from config import settings
-from baseline import gaussian_probability
+from models.baseline import gaussian_probability
 import numpy as np
 
 
@@ -10,8 +10,8 @@ def bayesian_interference(df_summer):
     true_my = np.mean(df_summer)
     #Likelihood
     forecast_value = fetcher.get_tommorows_wheather(settings.TOMMORROWS_DATE)
-    df_compute_error,mean_error,sigma_forecast= fetcher.compute_forecast_error()
-    P,my_prior,sigma_prior = gaussian_probability(df_summer,settings.lower_bound,settings.upper_bound)
+    _,mean_error,sigma_forecast= fetcher.compute_forecast_error()
+    _,my_prior,sigma_prior = gaussian_probability(df_summer,settings.lower_bound,settings.upper_bound)
 
     likelihood_mean = forecast_value - mean_error
     sigma_forecast_squared= sigma_forecast**2
@@ -35,8 +35,8 @@ def bayesian_interference(df_summer):
 
     my_posterior = (likelihood_mean_squared + true_my_squared) / combined_precision
 
-    if my_posterior > my_prior or my_posterior > likelihood_mean:
+    if my_posterior > my_prior and my_posterior > likelihood_mean or my_posterior < my_prior and my_posterior < likelihood_mean:
         raise ValueError("Posterir mean should be less than prior or true standar my")
 
 
-    return sigma_posterior, my_posterior
+    return sigma_posterior, sigma_prior,sigma_forecast, my_posterior,my_prior,likelihood_mean
