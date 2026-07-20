@@ -66,7 +66,7 @@ h = 1.06 · σ · n^(-1/5)
 
 ## Evaluation — Proper Scoring Rules
 
-### Brier Score
+### Brier Score (single binary event — reference definition only)
 ```
 BS = (1/N) · Σₜ (fₜ - oₜ)²
 ```
@@ -74,21 +74,41 @@ BS = (1/N) · Σₜ (fₜ - oₜ)²
 - oₜ = actual outcome (0 or 1)
 - Range: [0, 1] — lower is better
 - Perfect model: BS = 0, random model (f=0.5 always): BS = 0.25
+- This is the textbook single-event form. **Not what we compute** — see Multi-Category Brier Score below, which is what this project actually uses, since the event is a bucket, not a single threshold.
 
-### Log Loss (Binary Cross-Entropy)
+### Multi-Category Brier Score (chosen convention — this is what `scoring.py` implements)
+Each day has `B` mutually exclusive 1°C buckets (matching Polymarket's Hong Kong market structure — see `decisions_log.md`, "Bucket probability formulation"). For day `t`, bucket `b`:
+- `f_{t,b}` = model's predicted probability for bucket `b` on day `t`
+- `o_{t,b}` = 1 if the actual high landed in bucket `b`, else 0 — a one-hot vector across buckets for that day (exactly one bucket is correct per day)
+
 ```
-LL = -(1/N) · Σₜ [oₜ · log(fₜ) + (1 - oₜ) · log(1 - fₜ)]
+BS_t = Σ_{b=1}^{B} (f_{t,b} - o_{t,b})²          # sum across buckets WITHIN a day
+BS   = (1/T) · Σ_{t=1}^{T} BS_t                  # then average across days
+```
+- `T` = number of OOS days
+- **Range: [0, 2]**, not [0, 1] — worst case (100% mass on the wrong bucket) gives `BS_t = 2`. Don't be surprised if the number isn't in [0,1] like the single-event form above.
+- This is Brier's original 1950 multi-category formulation (invented for exactly this: multi-category weather forecasts). Chosen over the alternative of flattening every `(day, bucket)` pair into one independent sample and dividing by `T·B`, because a day's bucket probabilities are one distribution over mutually exclusive outcomes, not independent draws — grouping by day before averaging respects that. See `decisions_log.md` under Evaluation.
+- **One trial = one day's full bucket distribution**, not one bucket.
+
+### Log Loss (Multi-Category / Categorical Cross-Entropy)
+Since `o_{t,b}` is one-hot, the general cross-entropy sum collapses to just the predicted probability the model assigned to the bucket that actually happened:
+```
+LL_t = -log(f_{t, b*_t})       where b*_t = the actual bucket on day t
+LL   = (1/T) · Σ_{t=1}^{T} LL_t
 ```
 - Lower is better
 - Penalizes confident wrong predictions heavily (log(0) → ∞)
-- Clip predictions: fₜ ∈ [ε, 1-ε] to avoid numerical issues
+- Clip predictions: `f_{t,b} ∈ [ε, 1]` to avoid numerical issues
+- This is the categorical analogue of the binary log loss formula — no separate "binary" version is needed here since every event in this project is bucket-based.
 
 ### Brier Skill Score (relative to baseline)
 ```
 BSS = 1 - BS_model / BS_baseline
 ```
+- Both `BS_model` and `BS_baseline` computed via the multi-category convention above (same `T`, same buckets)
 - BSS > 0 means model beats baseline
 - BSS = 1 means perfect model
+- Intended baseline: Gaussian/KDE climatology (pooled or per-month) — see `decisions_log.md`, "why Gaussian/KDE exist" reasoning. Bayesian should beat climatology to justify its extra complexity.
 
 ### Expected Calibration Error (ECE)
 ```
@@ -101,6 +121,7 @@ ECE = Σ(m=1 to M) (|Bm| / N) · |ō_m - f̄_m|
 - ō_m = observed frequency in bin m (fraction of events that actually occurred)
 - f̄_m = mean predicted probability in bin m
 - Range: [0, 1] — lower is better. ECE = 0 means perfect calibration.
+- **Note:** unlike the multi-category Brier score above, ECE uses the *flattened* `(day, bucket)` pairs as samples — `N = T·B`, not `T`. There's no "per-day" grouping here; each bucket-probability is its own sample for calibration binning purposes. This is a deliberately different unit of analysis from Brier's per-day grouping, not an inconsistency.
 
 **How to use:** Plot ō_m vs f̄_m (reliability diagram). ECE quantifies the area between that curve and the diagonal. Use alongside Brier score — a model can have low Brier score but poor calibration.
 

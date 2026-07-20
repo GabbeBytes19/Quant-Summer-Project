@@ -15,12 +15,12 @@ def bayesian_interference(df_summer):
 
     likelihood_mean = forecast_value - mean_error
     sigma_forecast_squared= sigma_forecast**2
-    true_sigma_precision = 1/sigma_forecast_squared
+    likelihood_precision = 1/sigma_forecast_squared
 
-    prior_sigma_squared = sigma_prior**2 
-    prior_sigma_precision = 1/prior_sigma_squared
+    prior_sigma_squared = sigma_prior**2
+    prior_precision = 1/prior_sigma_squared
 
-    combined_precision = true_sigma_precision + prior_sigma_precision
+    combined_precision = likelihood_precision + prior_precision
     posterior_variance = 1/combined_precision
 
     sigma_posterior = np.sqrt(posterior_variance)
@@ -30,10 +30,10 @@ def bayesian_interference(df_summer):
         raise ValueError("Posterior standard deviation is less than prior or true standard deviation, which is not expected.")
 
 
-    true_my_squared = true_my * prior_sigma_precision
-    likelihood_mean_squared = likelihood_mean * true_sigma_precision
+    prior_term = true_my * prior_precision
+    likelihood_term = likelihood_mean * likelihood_precision
 
-    my_posterior = (likelihood_mean_squared + true_my_squared) / combined_precision
+    my_posterior = (likelihood_term + prior_term) / combined_precision
 
     if my_posterior > my_prior and my_posterior > likelihood_mean or my_posterior < my_prior and my_posterior < likelihood_mean:
         raise ValueError("Posterir mean should be less than prior or true standar my")

@@ -69,7 +69,13 @@ Format per entry:
 
 ## Evaluation
 
-*(Fill in as you make evaluation decisions)*
+### Decision: Multi-category (per-day) Brier score, not flat per-(day,bucket) averaging
+- **Alternatives considered:** flattening every `(day, bucket)` pair into one independent sample and computing a plain binary-style Brier score over all of them (dividing by `T·B`)
+- **Reason:** Each day's bucket probabilities aren't independent draws — they're one probability distribution over mutually exclusive outcomes (they sum to ~1, and exactly one bucket is correct per day). Treating `(day, bucket)` pairs as flat independent samples would ignore that structure. Instead: sum squared error across all buckets *within* a day first, then average across days. This is Brier's original 1950 multi-category formulation, built for exactly this case (multi-category weather forecasts). Consequence: the score's range becomes [0, 2] instead of [0, 1] — worth remembering so a computed value >1 isn't mistaken for a bug.
+- **Log loss follows the same per-day convention** — since the outcome vector is one-hot, it collapses to `-log(f_{t,b*})` (the probability the model put on the bucket that actually happened), averaged over days.
+- **ECE is the one exception** — it deliberately uses flat `(day, bucket)` pairs as its unit of analysis (`N = T·B`), since calibration binning is about individual predicted-probability values, not per-day distributions. Not an inconsistency, just a different question being asked.
+- See `math_reference.md` → Evaluation for the full formulas.
+- **Date:** 2026-07-20
 
 ---
 
