@@ -40,3 +40,19 @@ def bayesian_interference(df_summer):
 
 
     return sigma_posterior, sigma_prior,sigma_forecast, my_posterior,my_prior,likelihood_mean
+
+
+def posterior_probability(df_summer,lower_bound,upper_bound):
+    sigma_posterior,_,_,my_posterior,_,_ = bayesian_interference(df_summer)
+     
+    if lower_bound is None and upper_bound is None:
+        return None
+     
+    if lower_bound is not None and upper_bound is not None:
+        P = norm.cdf((upper_bound-my_posterior)/sigma_posterior) -norm.cdf((lower_bound-my_posterior)/sigma_posterior) #Probability of the event happening between threshold_a and threshold_b
+    if lower_bound is None and upper_bound is not None:
+        P = norm.cdf((upper_bound-my_posterior)/sigma_posterior)
+    if lower_bound is not None and upper_bound is None:
+        P = 1 - norm.cdf((lower_bound-my_posterior)/sigma_posterior)
+
+    return P

@@ -38,7 +38,7 @@ Goal: a working, calibrated probability model. No Polymarket yet.
 - [ ] `models/bayesian_model.py` — prior + likelihood → posterior update
 - [ ] `notebooks/03_KDE_Model.ipynb` — KDE fit, bucket probability, compare vs Gaussian baseline
 - [ ] `notebooks/04_Bayesian_Inference.ipynb` — step-by-step: prior, likelihood, posterior
-- [ ] `notebooks/06_Model_Comparison.ipynb` — baseline vs KDE vs Bayesian side-by-side
+- [ ] `notebooks/05_Model_Comparison.ipynb` — baseline vs KDE vs Bayesian side-by-side
 
 **Definition of done:** Three models each return P(event). You can explain which fits better and why.
 
@@ -49,7 +49,7 @@ Goal: a working, calibrated probability model. No Polymarket yet.
 - [ ] `evaluation/scoring.py` — Brier score, log loss, ECE
 - [ ] `evaluation/calibration.py` — reliability diagrams, calibration curves
 - [ ] Explicit IS/OOS split: 2015–2020 = In-Sample (training), 2021–2024 = Out-of-Sample (evaluation)
-- [ ] `notebooks/05_Calibration_Analysis.ipynb` — full calibration analysis of all three models on OOS data only
+- [ ] `notebooks/06_Calibration_Analysis.ipynb` — full calibration analysis of all three models on OOS data only
 - [ ] `tests/test_scoring.py` — edge cases (p=0, p=1, perfect predictions)
 - [ ] `tests/test_bayesian.py` — posterior sums to 1, updates in correct direction
 

@@ -58,8 +58,8 @@ Quant-Summer-Project/
 │   ├── 02_Baseline_Model.ipynb         # Phase 1 — fit baseline, compute P(event)
 │   ├── 03_KDE_Model.ipynb              # Phase 1 — KDE fit, bucket probability, compare vs Gaussian baseline
 │   ├── 04_Bayesian_Inference.ipynb     # Phase 1 — step-by-step Bayesian update
-│   ├── 05_Calibration_Analysis.ipynb   # Phase 1 — Brier, log loss, reliability diagrams
-│   ├── 06_Model_Comparison.ipynb       # Phase 1 — baseline vs KDE vs Bayesian
+│   ├── 05_Model_Comparison.ipynb       # Phase 1 — baseline vs KDE vs Bayesian
+│   ├── 06_Calibration_Analysis.ipynb   # Phase 1 — Brier, log loss, reliability diagrams
 │   ├── 07_Full_Backtest.ipynb          # Phase 2/3 — full system simulation
 │   └── 08_Risk_Analysis_Kelly.ipynb    # Phase 2 — Kelly sizing, drawdown analysis
 │
