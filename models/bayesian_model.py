@@ -35,7 +35,8 @@ def bayesian_interference(df_summer,day,df_pair):
 
     my_posterior = (likelihood_term + prior_term) / combined_precision
 
-    if my_posterior > my_prior and my_posterior > likelihood_mean or my_posterior < my_prior and my_posterior < likelihood_mean:
+    if my_posterior - my_prior > 1e-9 and my_posterior - likelihood_mean > 1e-9 or my_prior - my_posterior  > 1e-9 and likelihood_mean - my_posterior  > 1e-9:
+        #print(true_my, my_prior, likelihood_mean,my_posterior)
         raise ValueError("Posterir mean should be less than prior or true standar my")
 
 
