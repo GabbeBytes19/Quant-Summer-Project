@@ -15,9 +15,11 @@ def test_sigma_posterior_raise(monkeypatch):
     df_clean = cleaner.clean_data(df_raw)
     df_event = loader.add_event_column(df_clean)
     df_temp_summer = loader.filter_summer(df_event)
-    
+    df_pair = fetcher.call_fetcher_functions(settings.FORECAST_START,settings.FORECAST_END)
     df_temp_list = df_temp_summer["temperature_2m_max"].to_list()
-    sigma_posterior, sigma_prior,sigma_forecast, my_posterior,my_prior,likelihood_mean = bayesian_interference(df_temp_list)
+    df_date_list = df_pair["date"].to_list()
+    day = df_date_list[-1]
+    sigma_posterior, sigma_prior,sigma_forecast, my_posterior,my_prior,likelihood_mean = bayesian_interference(df_temp_list,day,df_pair)
 
     assert sigma_posterior < sigma_prior
     assert sigma_posterior < sigma_forecast

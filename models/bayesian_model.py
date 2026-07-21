@@ -5,12 +5,12 @@ from models.baseline import gaussian_probability
 import numpy as np
 
 
-def bayesian_interference(df_summer):
+def bayesian_interference(df_summer,day,df_pair):
     #Prior
     true_my = np.mean(df_summer)
     #Likelihood
-    forecast_value = fetcher.get_specific_day(settings.SPECIFIC_DAY)
-    _,mean_error,sigma_forecast= fetcher.compute_forecast_error()
+    forecast_value = fetcher.get_specific_day(day,df_pair)
+    _,mean_error,sigma_forecast= fetcher.compute_forecast_error(df_pair)
     _,my_prior,sigma_prior = gaussian_probability(df_summer,settings.lower_bound,settings.upper_bound)
 
     likelihood_mean = forecast_value - mean_error
@@ -42,8 +42,8 @@ def bayesian_interference(df_summer):
     return sigma_posterior, sigma_prior,sigma_forecast, my_posterior,my_prior,likelihood_mean
 
 
-def posterior_probability(df_summer,lower_bound,upper_bound):
-    sigma_posterior,_,_,my_posterior,_,_ = bayesian_interference(df_summer)
+def posterior_probability(df_summer,day,df_pair,lower_bound,upper_bound):
+    sigma_posterior,_,_,my_posterior,_,_ = bayesian_interference(df_summer,day,df_pair)
      
     if lower_bound is None and upper_bound is None:
         return None

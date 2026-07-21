@@ -90,7 +90,17 @@ def get_specific_day(day : str,df_pair):
     df_get_day_temp = df_pair.filter(pl.col("date") == day)
     if df_get_day_temp.is_empty():
         return f"{day} is not a date in the DataFrame"
-    return df_get_day_temp["daily_max_predicted"]
+    df_get_day_temp_list = df_get_day_temp["daily_max_predicted"].to_list()
+    return df_get_day_temp_list[0]
+
+
+def call_fetcher_functions(start_date, end_date):
+   df = fetch_data(start_date,end_date)
+   df_previous = fetch_previous_forecast_data(start_date,end_date)    
+   df_daily_max = get_daily_max(df_previous)
+   df_pair = pair_dataframes(df,df_daily_max)
+   return df_pair
+  
 
 
 def compute_forecast_error(df_pair): #This maybe should be moved to models/
