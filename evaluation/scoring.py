@@ -1,3 +1,4 @@
+import numpy as np
 
 def create_buckets(lower_bound,upper_bound):
     data = []
@@ -10,8 +11,6 @@ def create_buckets(lower_bound,upper_bound):
 
 def brier_score(prob_matrix, correct_indices):
     running_total = 0
-    
-
     for day_probs,correct_class in zip(prob_matrix,correct_indices):
         res = 0
         right_prob = day_probs[correct_class]
@@ -21,3 +20,13 @@ def brier_score(prob_matrix, correct_indices):
         running_total += days_points
 
     return running_total / len(prob_matrix)
+
+
+def log_loss(prob_matrix, correct_indices,epsilon):
+    running_total = 0
+    for day_probs,correct_class in zip(prob_matrix,correct_indices):
+        right_prob = max(day_probs[correct_class],epsilon) #TO discard the value to not get log(0)
+        log_loss = -np.log(right_prob)
+        running_total += log_loss
+    return running_total / len(prob_matrix)
+    
