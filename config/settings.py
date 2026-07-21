@@ -17,3 +17,4 @@ MAX_NULL_GAP = 5  # Maximum number of consecutive null values allowed in the dat
 TOMMORROWS_DATE = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
 lower_bound = 31.5  # Lower bound for the probability of the event, if the probability is below this threshold, consider it as a no-even
 upper_bound = 32.5  # Upper bound for the probability of the event, if the probability is above this threshold, consider it as a yes-event
+SPECIFIC_DAY = "2024-01-01"

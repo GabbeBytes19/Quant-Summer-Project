@@ -9,7 +9,7 @@ def bayesian_interference(df_summer):
     #Prior
     true_my = np.mean(df_summer)
     #Likelihood
-    forecast_value = fetcher.get_tommorows_wheather(settings.TOMMORROWS_DATE)
+    forecast_value = fetcher.get_specific_day(settings.SPECIFIC_DAY)
     _,mean_error,sigma_forecast= fetcher.compute_forecast_error()
     _,my_prior,sigma_prior = gaussian_probability(df_summer,settings.lower_bound,settings.upper_bound)
 

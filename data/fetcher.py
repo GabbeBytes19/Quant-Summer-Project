@@ -69,16 +69,14 @@ def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame
         print(f"Error fetching data from {url} with params {items}: {e},Kolla vi kom hit hahaha")
 
 
-def get_daily_max():
-    df_previous = fetch_previous_forecast_data(settings.FORECAST_START, settings.FORECAST_END)
+
+def get_daily_max(df_previous): #Maybe moved to data/loader
     # Get the daily max temperature for each of the previous days
     df_daily_max = df_previous.group_by(pl.col("time").str.slice(0, 10).alias("date")).agg(
     pl.col("temperature_2m_previous_day1").max().alias("daily_max_predicted")).sort("date")
     return df_daily_max
 
-def pair_dataframes():
-    df_actual = fetch_data(settings.FORECAST_START, settings.FORECAST_END)
-    df_daily_max_predicted = get_daily_max()
+def pair_dataframes(df_actual,df_daily_max_predicted):
     df_actual = df_actual.select(
         pl.col("time").alias("date"),
         pl.col("temperature_2m_max").alias("actual_temp"),
@@ -87,8 +85,15 @@ def pair_dataframes():
     df_pair = df_actual.join(df_daily_max_predicted, on="date", how="inner").drop_nulls().sort("date")
     return df_pair
 
-def compute_forecast_error():
-    df_pair = pair_dataframes()
+def get_specific_day(day : str,df_pair):
+  
+    df_get_day_temp = df_pair.filter(pl.col("date") == day)
+    if df_get_day_temp.is_empty():
+        return f"{day} is not a date in the DataFrame"
+    return df_get_day_temp["daily_max_predicted"]
+
+
+def compute_forecast_error(df_pair): #This maybe should be moved to models/
     error_list = df_pair.select((pl.col("daily_max_predicted") - pl.col("actual_temp"))).to_series().to_list()
     mean_error = np.mean(error_list)
     delta_error = 0
