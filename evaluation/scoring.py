@@ -23,5 +23,5 @@ def log_loss(prob_matrix, correct_indices):
     return running_total / len(prob_matrix)
     
 
-def brier_skill_score(bs_model, bs_baseline):
+def skill_score(bs_model, bs_baseline):
     return 1 -(bs_model/bs_baseline)

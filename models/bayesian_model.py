@@ -11,7 +11,7 @@ def bayesian_interference(df_summer,day,df_pair):
     #Likelihood
     forecast_value = fetcher.get_specific_day(day,df_pair)
     _,mean_error,sigma_forecast= fetcher.compute_forecast_error(df_pair)
-    _,my_prior,sigma_prior = gaussian_probability(df_summer,settings.lower_bound,settings.upper_bound)
+    _,my_prior,sigma_prior = gaussian_probability(df_summer,settings.LOWER_BOUND,settings.UPPER_BOUND)
 
     likelihood_mean = forecast_value - mean_error
     sigma_forecast_squared= sigma_forecast**2
