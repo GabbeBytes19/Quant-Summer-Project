@@ -14,6 +14,7 @@ def test_columns_correct():
     }
 
 def test_checks_nulls():
+    
     df = fetcher.fetch_data("2024-01-01", "2024-01-10")
     print(cleaner.clean_data(df).null_count().to_numpy)
     res = cleaner.clean_data(df)
