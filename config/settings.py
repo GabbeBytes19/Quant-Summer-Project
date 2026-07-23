@@ -18,3 +18,7 @@ TOMMORROWS_DATE = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
 LOWER_BOUND = 31.5  # Lower bound for the probability of the event, if the probability is below this threshold, consider it as a no-even
 UPPER_BOUND= 32.5  # Upper bound for the probability of the event, if the probability is above this threshold, consider it as a yes-event
 SPECIFIC_DAY = "2017-01-01"
+IS_START = "2000-01-01" #In sample, data we have used to build the model
+IS_END = "2016-12-31"
+OOS_START = "2017-01-01" #Out sample, data the model never has seen
+OOS_END = "2026-06-28"
