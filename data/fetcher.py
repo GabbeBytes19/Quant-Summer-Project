@@ -30,7 +30,8 @@ def fetch_data(start_date: str, end_date: str) -> pl.DataFrame:
         return df_actual
         
     except Exception as e:
-        print(f"Error fetching data from {url} with params {items}: {e}")
+        raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
+
 
 def get_tommorows_wheather(tommorrows_date):
     items,_ =  store_data(tommorrows_date, tommorrows_date)
@@ -45,7 +46,7 @@ def get_tommorows_wheather(tommorrows_date):
         df_tommorrow = df["temperature_2m_max"].to_list()
         return df_tommorrow[0]
     except Exception as e:
-        print(f"Error fetching data from {url} with params {items}: {e}")
+        raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
 
 def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame:
@@ -66,7 +67,7 @@ def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame
         return df_previous
 
     except Exception as e:
-        print(f"Error fetching data from {url} with params {items}: {e},Kolla vi kom hit hahaha")
+        raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
 
 
