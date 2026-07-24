@@ -1,7 +1,8 @@
 import numpy as np
-import pytest
+import pytest 
 
-from evaluation.scoring import brier_score, log_loss, brier_skill_score
+
+from evaluation.scoring import brier_score, log_loss,skill_score
 
 
 def test_brier_score_perfect_prediction():
@@ -41,8 +42,9 @@ def test_log_loss_clips_zero_probability():
 
 
 def test_brier_skill_score_positive_when_model_beats_baseline():
-    assert brier_skill_score(0.5, 1.0) == pytest.approx(0.5)
+    assert skill_score(0.5, 1.0) == pytest.approx(0.5)
 
 
 def test_brier_skill_score_zero_when_equal_to_baseline():
-    assert brier_skill_score(1.0, 1.0) == pytest.approx(0.0)
+    assert skill_score(1.0, 1.0) == pytest.approx(0.0)
+
