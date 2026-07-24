@@ -79,6 +79,22 @@ Format per entry:
 
 ---
 
+## Phase 1 Summary
+
+**Status: Phase 1 (probabilistic models + calibration, no Polymarket integration) is complete as of 2026-07-24.**
+
+- Three models built and evaluated end-to-end: Gaussian baseline (climatology only), KDE (climatology only), and a Bayesian model (Gaussian climatological prior + forecast-conditioned likelihood via Normal-Normal conjugate update, debiased for the +0.38°C systematic warm bias in the 1-day-ahead forecast).
+- IS/OOS split: climatological prior built from 2000-01-01–2015-01-01 (no forecast pairing needed); scored out-of-sample on 2017-01-01–2026-06-28, yielding 1,135 days with real paired forecast/actual data (Open-Meteo Previous Runs API coverage starts ~2021-05-01; earlier OOS dates are safely dropped by the join since they have no real forecast to pair).
+- Evaluation uses 11 buckets of 1°C each (25–36°C), matching Polymarket Hong Kong's actual market structure, scored via the multi-category (per-day) Brier score and log loss.
+- **Results (Brier / log loss, lower is better):** Gaussian 0.902 / 2.444, KDE 0.903 / 2.384, Bayesian 0.765 / 1.598.
+- **Skill scores vs. Gaussian baseline:** Bayesian beats Gaussian by ~15.2% (Brier) and ~34.6% (log loss). KDE vs. Gaussian is statistically a wash (~0% Brier skill) once the earlier IS/OOS look-ahead leak was fixed — KDE's initial apparent edge over Gaussian was an artifact of the leak, not a real advantage.
+- **Calibration:** no model ever assigns more than ~40-49% confidence to any single 1°C bucket in this dataset — real forecast uncertainty (σ_forecast ≈ 1.18°C) still spreads probability across 2-3 adjacent buckets even after forecast-conditioning. Gaussian/KDE show inconsistent-direction miscalibration (underconfident at low predicted probabilities, overconfident in the mid-range). Bayesian is comparably or better calibrated across all its bins, with only mild overconfidence at its two highest-confidence bins.
+- **Bottom line:** Bayesian's lower error is not just a confidence artifact — it is also reasonably well-calibrated relative to the climatology-only models. Conditioning on the forecast earns its added complexity.
+- **Reproducibility:** `python run_experiment.py` from the repo root runs the full pipeline (fetch → clean → build prior → build OOS pairs → score all 3 models → print scores, skill scores, and calibration bins) end-to-end from `config/settings.py`, with no notebook required.
+- **Date:** 2026-07-24
+
+---
+
 ## Risk
 
 *(Fill in as you make risk management decisions)*
