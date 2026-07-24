@@ -1,4 +1,6 @@
 
+
+from config import settings
 def create_buckets(lower_bound,upper_bound):
     data = []
     for i in range(lower_bound,upper_bound):

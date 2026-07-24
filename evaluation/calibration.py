@@ -24,8 +24,6 @@ def calculate_buckets(guessed_prob):
         prob_sums[bucket] += prob
         binary_sums[bucket] += binary
         counts[bucket] += 1  
-    
-    print(dict(counts))
 
     for bucket in range(10):
         if counts[bucket]:
