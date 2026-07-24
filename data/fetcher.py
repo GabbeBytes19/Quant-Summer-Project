@@ -70,6 +70,27 @@ def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame
         raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
 
+def fetch_polymarket_data():
+    items = {
+        "event_slug": "highest-temperature-in-hong-kong-on-july-25-2026",
+        "active": "true",
+        "closed": "false",
+        "limit": 100
+    }
+    url = "https://gamma-api.polymarket.com/markets"
+
+    try:
+        response = requests.get(url, params=items, timeout=120)
+        response.raise_for_status()
+        data = response.json()
+        
+        df_poly_market = pl.DataFrame(data)
+        #df_wheater = df_poly_market["highest-temperature-in-hong-kong-on-july-25-2026"]
+        return df_poly_market
+
+    except Exception as e:
+        raise ValueError(f"Error fetching data: {e}")
+
 
 def get_daily_max(df_previous): #Maybe moved to data/loader
     # Get the daily max temperature for each of the previous days
