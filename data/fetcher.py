@@ -70,28 +70,62 @@ def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame
         raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
 
+def parse_date_function_helper():
+    list_of_dates = []
+    month_converter = {1:'january',
+		2:'february',
+		3:'march',
+		4:'april',
+		5:'may',
+		6:'june',
+		7:'july',
+		8:'august',
+		9:'september',
+		10:'october',
+		11:'november',
+		12:'december'		}
+    from datetime import datetime,timedelta
+    start_date_str = settings.POLYMARKET_START 
+    end_date_str = settings.POLYMARKET_END 
+    # Source - https://stackoverflow.com/a/1060330
+    # Posted by Ber, modified by community. See post 'Timeline' for change history
+    # Retrieved 7/27/2026, License - CC BY-SA 4.0
+    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    day_count = int((end_date - start_date).days)
+    for single_date in (start_date + timedelta(n) for n in range(day_count +1 )):
+        #print(single_date) # Gives us all the dates!
+        year = single_date.year
+        month_str = single_date.month
+        month = month_converter[single_date.month]
+        day = single_date.day
+        list_of_dates.append((month,month_str,day,year))
+    return list_of_dates
+
+   
+
 def fetch_polymarket_data():
-    items = {
-        "event_slug": "highest-temperature-in-hong-kong-on-july-25-2026",
-        "active": "true",
-        "closed": "false",
-        "limit": 100
-    }
-    url = "https://gamma-api.polymarket.com/markets"
+    lst = parse_date_function_helper()
+    all_days = []
+    url = "https://gamma-api.polymarket.com/events"
+    for month,month_str, day, year in lst:
+        items = {"slug": f"highest-temperature-in-hong-kong-on-{month}-{day}-{year}"}
+        try:
+            response = requests.get(url, params=items, timeout=120)
+            response.raise_for_status()
+            data = response.json()
+        except Exception as e:
+            raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
-    try:
-        response = requests.get(url, params=items, timeout=120)
-        response.raise_for_status()
-        data = response.json()
+        if not data or "markets" not in data[0]:
+            continue
         
-        df_poly_market = pl.DataFrame(data)
-        #df_wheater = df_poly_market["highest-temperature-in-hong-kong-on-july-25-2026"]
-        return df_poly_market
+    df_day = pl.DataFrame(data, strict=False).explode("markets").with_columns(pl.lit(f"{year}-{month_str:02d}-{day:02d}").alias("date"))
+    all_days.append(df_day)
 
-    except Exception as e:
-        raise ValueError(f"Error fetching data: {e}")
+    return pl.concat(all_days,how="diagonal_relaxed")
 
-
+  
 def get_daily_max(df_previous): #Maybe moved to data/loader
     # Get the daily max temperature for each of the previous days
     df_daily_max = df_previous.group_by(pl.col("time").str.slice(0, 10).alias("date")).agg(
@@ -137,3 +171,10 @@ def compute_forecast_error(df_pair): #This maybe should be moved to models/
       
 
     
+
+
+#except Exception as e:
+#raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
+# Source - https://stackoverflow.com/a/75628511
+# Posted by jqurious, modified by community. See post 'Timeline' for change history
+# Retrieved 7/27/2026, License - CC BY-SA 4.0

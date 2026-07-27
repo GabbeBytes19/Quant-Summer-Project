@@ -22,6 +22,13 @@ def clean_data(df):
 
     return df
 
+def clean_polymarket_data(df_poly_market):
+    df_selected = df_poly_market.select(pl.col("markets").struct.unnest()).select("groupItemTitle", "groupItemThreshold", "outcomes", "outcomePrices", "slug", "umaResolutionStatus", "closed")
+    df_selected = df_selected.with_columns(pl.col("outcomePrices").str.json_decode(dtype = pl.List(pl.String)).cast(pl.List(pl.Float64)))
+    df_selected = df_selected.with_columns(pl.col("outcomes").str.json_decode(dtype=pl.List(pl.String)))
+    df_selected = df_selected.with_columns(pl.col("groupItemThreshold").str.to_integer(strict=False))
+    df_selected = df_selected.sort("groupItemThreshold")
+    return df_selected
 
 
 # Source - https://stackoverflow.com/a/78350448

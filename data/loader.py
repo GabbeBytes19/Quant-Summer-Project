@@ -1,5 +1,4 @@
 import polars as pl
-
 from config import settings
 
 """
@@ -39,3 +38,10 @@ def get_separate_summer_months(df):
     df_august= filtered_df.filter(pl.col("month") == 8)
     
     return df_june, df_july, df_august
+
+def add_market_prob_column(df):
+    #take clean_polymarket_data
+    if not df["outcomes"].list.first().eq("Yes").all():
+        raise ValueError("First outcome is not 'Yes' for all rows")
+    df = df.with_columns(pl.col("outcomePrices").list.first().alias("market_prob"))
+    return df

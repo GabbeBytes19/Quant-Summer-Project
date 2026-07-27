@@ -7,7 +7,6 @@ HISTORICAL_START = "2021-01-01"  # for actuals (Open-Meteo archive)
 HISTORICAL_END = "2026-04-28"  # for actuals
 FORECAST_START = "2017-01-01"  # for forecast (Open-Meteo historical forecast)
 FORECAST_END = "2026-06-28"  # for forecast
-POLYMARKET_START = "2024-01-01"  # Polymarket data only reliable from ~2024
 EVENT_THRESHOLD = 30.0  # °C #Makes a binary event if the max daily temp at 2 meters is above this threshold
 MIN_EDGE = 0.05  # minimum gross edge to consider a signal, Edge is models predicted probability - market probability, if edge is postive consider buying but only if it is above this threshold
 MIN_EFFECTIVE_EDGE = 0.02  # minimum edge after spread + fees, the edge minus sprea(ask price -bidprice = bid/askprice on Polymarket) - fee_rate , act ifeffective egde is positive and above this threshold
@@ -23,3 +22,5 @@ IS_END = "2016-12-31"
 OOS_START = "2017-01-01" #Out sample, data the model never has seen
 OOS_END = "2026-06-28"
 USE_SYNTHECTIC_DATA = True #If you dont want to use real data with API calls, test data with Synthectic data,
+POLYMARKET_START = "2026-01-01" ## Polymarket data only reliable from ~2024
+POLYMARKET_END = "2026-04-28"
