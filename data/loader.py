@@ -1,6 +1,5 @@
 import polars as pl
 from config import settings
-
 """
 So the function:
 - Takes a clean DataFrame as input
@@ -20,8 +19,6 @@ def add_event_column(df):
     )
 
     return df
-
-
 def filter_summer(df):
     summer_months = [6,7,8]
     df_months = df.with_columns(
@@ -44,4 +41,10 @@ def add_market_prob_column(df):
     if not df["outcomes"].list.first().eq("Yes").all():
         raise ValueError("First outcome is not 'Yes' for all rows")
     df = df.with_columns(pl.col("outcomePrices").list.first().alias("market_prob"))
+    df = df.with_columns(pl.col("clobTokenIds").list.first().alias("yes_token_id"))
     return df
+
+
+def filter_resolved(df_selected):
+    df_selected = df_selected.filter(pl.col("closed") == True)
+    return df_selected

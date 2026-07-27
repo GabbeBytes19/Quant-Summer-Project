@@ -3,6 +3,9 @@ import requests
 import numpy as np
 import math
 from config import settings
+from data.loader import filter_resolved,add_market_prob_column
+from data.cleaner import clean_polymarket_data
+from concurrent.futures import ThreadPoolExecutor
 def store_data(start_date: str, end_date: str):
     items = {
         "latitude": settings.LATITUDE,
@@ -69,7 +72,7 @@ def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame
     except Exception as e:
         raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
-
+"""
 def parse_date_function_helper():
     list_of_dates = []
     month_converter = {1:'january',
@@ -101,7 +104,6 @@ def parse_date_function_helper():
         day = single_date.day
         list_of_dates.append((month,month_str,day,year))
     return list_of_dates
-
    
 
 def fetch_polymarket_data():
@@ -120,12 +122,75 @@ def fetch_polymarket_data():
         if not data or "markets" not in data[0]:
             continue
         
-    df_day = pl.DataFrame(data, strict=False).explode("markets").with_columns(pl.lit(f"{year}-{month_str:02d}-{day:02d}").alias("date"))
-    all_days.append(df_day)
+        df_day = pl.DataFrame(data, strict=False).explode("markets").with_columns(pl.lit(f"{year}-{month_str:02d}-{day:02d}").alias("date"))
+        all_days.append(df_day)
 
     return pl.concat(all_days,how="diagonal_relaxed")
 
-  
+"""
+
+def fetch_polymarket_data():
+    url = "https://gamma-api.polymarket.com/events"
+    all_pages = []
+    offset = 0
+    while True:
+        items = {"series_id": 11312, "limit": 100, "offset": offset}
+        try:
+            response = requests.get(url, params=items, timeout=120)
+            response.raise_for_status()
+            data = response.json()
+        except Exception as e:
+            raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
+
+        if not data:
+            break
+
+        all_pages.append(pl.DataFrame(data, strict=False).explode("markets"))
+        offset += 100
+    return pl.concat(all_pages, how="diagonal_relaxed")
+
+
+
+def fetch_all_price_history(token_ids):
+    all_histories = []
+    progress = len(token_ids)
+    with ThreadPoolExecutor(max_workers=15) as executor:
+        results = executor.map(fetch_polymarket_price_history, token_ids)
+        for token_idx, (token_id, history_df) in enumerate(zip(token_ids, results)):
+            all_histories.append(history_df.with_columns(pl.lit(token_id).alias("yes_token_id")))
+            if (token_idx + 1) % 50 == 0:
+                print(f"We are on {token_idx + 1} of {progress}")
+    return pl.concat(all_histories, how="diagonal_relaxed")
+ 
+def fetch_polymarket_price_history(clob_token_id):
+
+    items =  {
+    "market": clob_token_id, 
+    "interval": "max"
+    }
+    url = "https://clob.polymarket.com/prices-history"
+    try:
+        data_json = requests.get(url, params=items, timeout=120)
+        data = data_json.json()
+        if "error" in data:
+            raise ValueError(data["reason"])
+        df_polymarket_history= pl.DataFrame(data["history"])
+        return df_polymarket_history
+    except Exception as e:
+        raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
+
+
+
+def  build_polymarket_price_dataset():
+    df = fetch_polymarket_data()
+    df_clean = clean_polymarket_data(df)
+    df_filtered = filter_resolved(df_clean)
+    df_loaded = add_market_prob_column(df_filtered)
+    df_prices = fetch_all_price_history(df_loaded["yes_token_id"])
+    df_prices = df_prices.drop_nulls()
+    return df_loaded, df_prices
+
+
 def get_daily_max(df_previous): #Maybe moved to data/loader
     # Get the daily max temperature for each of the previous days
     df_daily_max = df_previous.group_by(pl.col("time").str.slice(0, 10).alias("date")).agg(
