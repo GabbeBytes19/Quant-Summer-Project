@@ -18,7 +18,7 @@ def use_synthectic_data():
         get_tommorows_wheather = lambda *args, **kwargs: 30
     else:
         pass
-def fetch_data():
+def fetch_all_data():
     use_synthectic_data()
 
     df_raw = fetcher.fetch_data(settings.IS_START,settings.IS_END)
@@ -31,7 +31,7 @@ def fetch_data():
 
     return df_summer, df_pair
 def run_models():
-    df_summer, df_pair = fetch_data()
+    df_summer, df_pair = fetch_all_data()
     buckets = create_buckets(settings.LOWER_BOUND,settings.UPPER_BOUND)
 
     gaussian_prob_fn = lambda low, high: gaussian_probability(df_summer, low, high)[0]
@@ -111,7 +111,7 @@ def run_models():
 
 
 def run_experiment():
-    fetch_data()
+    fetch_all_data()
     run_models()
 
 

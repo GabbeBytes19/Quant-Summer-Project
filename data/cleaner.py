@@ -28,12 +28,15 @@ def clean_polymarket_data(df_poly_market):
     ).select(
         pl.col("endDateIso").alias("date"),
         "groupItemTitle", "groupItemThreshold", "outcomes",
-        "outcomePrices", "slug", "umaResolutionStatus", "closed","clobTokenIds"
+        "outcomePrices", "slug", "umaResolutionStatus", "closed","clobTokenIds", "endDate"
     )
     df_selected = df_selected.with_columns(pl.col("clobTokenIds").str.json_decode(dtype=pl.List(pl.String)))
     df_selected = df_selected.with_columns(pl.col("outcomePrices").str.json_decode(dtype=pl.List(pl.String)).cast(pl.List(pl.Float64)))
     df_selected = df_selected.with_columns(pl.col("outcomes").str.json_decode(dtype=pl.List(pl.String)))
     df_selected = df_selected.with_columns(pl.col("groupItemThreshold").str.to_integer(strict=False))
+    df_selected = df_selected.with_columns(pl.col("endDate").str.to_datetime(time_zone = 'UTC'))
+    df_selected = df_selected.with_columns(pl.col("endDate").dt.offset_by('-1d').dt.epoch(time_unit="s").alias("target"))
+
     df_selected = df_selected.sort("date", "groupItemThreshold")
 
     return df_selected
