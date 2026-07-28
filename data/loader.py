@@ -49,3 +49,7 @@ def add_market_prob_column(df):
 def filter_resolved(df_selected):
     df_selected = df_selected.filter(pl.col("closed") == True)
     return df_selected
+
+def join_price_lookup(df_loaded,df_prices):
+    df_result = df_loaded.join_asof(df_prices,left_on = "target" , right_on = "t",by = "yes_token_id",strategy = "backward")
+    return df_result

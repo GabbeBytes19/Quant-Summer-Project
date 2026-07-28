@@ -3,7 +3,7 @@ import requests
 import numpy as np
 import math
 from config import settings
-from data.loader import filter_resolved,add_market_prob_column
+from data.loader import filter_resolved,add_market_prob_column,join_price_lookup
 from data.cleaner import clean_polymarket_data
 from concurrent.futures import ThreadPoolExecutor
 def store_data(start_date: str, end_date: str):
@@ -197,9 +197,12 @@ def  build_polymarket_price_dataset():
     df_clean = clean_polymarket_data(df)
     df_filtered = filter_resolved(df_clean)
     df_loaded = add_market_prob_column(df_filtered)
+
     df_prices = fetch_all_price_history(df_loaded["yes_token_id"])
     df_prices = df_prices.drop_nulls()
-    return df_loaded,df_prices
+
+    df_result = join_price_lookup(df_loaded,df_prices)
+    return df_result
 
 
 def get_daily_max(df_previous): #Maybe moved to data/loader
