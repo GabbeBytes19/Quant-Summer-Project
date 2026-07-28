@@ -37,7 +37,7 @@ def clean_polymarket_data(df_poly_market):
     df_selected = df_selected.with_columns(pl.col("endDate").str.to_datetime(time_zone = 'UTC'))
     df_selected = df_selected.with_columns(pl.col("endDate").dt.offset_by('-1d').dt.epoch(time_unit="s").alias("target"))
 
-    df_selected = df_selected.sort("date", "groupItemThreshold")
+    df_selected = df_selected.sort("date", "groupItemThreshold","target")
 
     return df_selected
 

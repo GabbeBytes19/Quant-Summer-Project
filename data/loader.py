@@ -42,6 +42,7 @@ def add_market_prob_column(df):
         raise ValueError("First outcome is not 'Yes' for all rows")
     df = df.with_columns(pl.col("outcomePrices").list.first().alias("market_prob"))
     df = df.with_columns(pl.col("clobTokenIds").list.first().alias("yes_token_id"))
+    df = df.sort("yes_token_id")
     return df
 
 

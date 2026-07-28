@@ -160,12 +160,12 @@ def fetch_all_price_history(token_ids):
             all_histories.append(history_df.with_columns(pl.lit(token_id).alias("yes_token_id")))
             if (token_idx + 1) % 50 == 0:
                 print(f"We are on {token_idx + 1} of {progress}")
-    return pl.concat(all_histories, how="diagonal_relaxed")
+        
+    return pl.concat(all_histories, how="diagonal_relaxed").sort("yes_token_id","t")
  
 def fetch_polymarket_price_history(clob_token_id):
-
     items =  {
-    "market": clob_token_id, 
+    "market": clob_token_id,
     "interval": "max"
     }
     url = "https://clob.polymarket.com/prices-history"
@@ -175,6 +175,17 @@ def fetch_polymarket_price_history(clob_token_id):
         if "error" in data:
             raise ValueError(data["reason"])
         df_polymarket_history= pl.DataFrame(data["history"])
+        if df_polymarket_history.is_empty():
+            items["fidelity"] = 1440
+            try:
+                data_json = requests.get(url, params=items, timeout=120)
+                data = data_json.json()
+                if "error" in data:
+                        raise ValueError(data["reason"])
+                df_polymarket_history= pl.DataFrame(data["history"])
+                return df_polymarket_history
+            except Exception as e:
+                raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
         return df_polymarket_history
     except Exception as e:
         raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
@@ -188,7 +199,7 @@ def  build_polymarket_price_dataset():
     df_loaded = add_market_prob_column(df_filtered)
     df_prices = fetch_all_price_history(df_loaded["yes_token_id"])
     df_prices = df_prices.drop_nulls()
-    return df_loaded, df_prices
+    return df_loaded,df_prices
 
 
 def get_daily_max(df_previous): #Maybe moved to data/loader
