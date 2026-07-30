@@ -24,3 +24,4 @@ OOS_END = "2026-06-28"
 USE_SYNTHECTIC_DATA = True #If you dont want to use real data with API calls, test data with Synthectic data,
 POLYMARKET_START = "2026-01-01" ## Polymarket data only reliable from ~2024
 POLYMARKET_END = "2026-04-28"
+TODAYS_DATE_MINUS30 = (datetime.now() - timedelta(days = 30)).strftime('%Y-%m-%d')

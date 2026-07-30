@@ -2,6 +2,7 @@ import polars as pl
 import requests
 import numpy as np
 import math
+import time
 from config import settings
 from data.loader import filter_resolved,add_market_prob_column,join_price_lookup
 from data.cleaner import clean_polymarket_data
@@ -151,31 +152,34 @@ def fetch_polymarket_data():
 
 
 
-def fetch_all_price_history(token_ids):
+def fetch_all_price_history(token_ids,date):
     all_histories = []
+    start = time.perf_counter()
     progress = len(token_ids)
     with ThreadPoolExecutor(max_workers=15) as executor:
-        results = executor.map(fetch_polymarket_price_history, token_ids)
+        results = executor.map(fetch_polymarket_price_history, token_ids,date)
         for token_idx, (token_id, history_df) in enumerate(zip(token_ids, results)):
             all_histories.append(history_df.with_columns(pl.lit(token_id).alias("yes_token_id")))
             if (token_idx + 1) % 50 == 0:
-                print(f"We are on {token_idx + 1} of {progress}")
+                print(f"We are on {token_idx + 1} of {progress}, this took{ time.perf_counter() - start} seconds ")
         
     return pl.concat(all_histories, how="diagonal_relaxed").sort("yes_token_id","t")
  
-def fetch_polymarket_price_history(clob_token_id):
+def fetch_polymarket_price_history(clob_token_id,date):
     items =  {
     "market": clob_token_id,
     "interval": "max"
     }
     url = "https://clob.polymarket.com/prices-history"
     try:
-        data_json = requests.get(url, params=items, timeout=120)
-        data = data_json.json()
-        if "error" in data:
-            raise ValueError(data["reason"])
-        df_polymarket_history= pl.DataFrame(data["history"])
-        if df_polymarket_history.is_empty():
+        if date >= settings.TODAYS_DATE_MINUS30:
+            data_json = requests.get(url, params=items, timeout=120)
+            data = data_json.json()
+            if "error" in data:
+                raise ValueError(data["reason"])
+            df_polymarket_history= pl.DataFrame(data["history"])
+            
+        else:
             items["fidelity"] = 1440
             try:
                 data_json = requests.get(url, params=items, timeout=120)
@@ -186,21 +190,27 @@ def fetch_polymarket_price_history(clob_token_id):
                 return df_polymarket_history
             except Exception as e:
                 raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
+        
         return df_polymarket_history
+
     except Exception as e:
         raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
 
 
 def  build_polymarket_price_dataset():
+    start = time.perf_counter()
     df = fetch_polymarket_data()
+    print("fetch_polymarket_data klar efter:", time.perf_counter() - start, "sekunder")
     df_clean = clean_polymarket_data(df)
+    print("clean_polymarket_data klar efter:", time.perf_counter() - start, "sekunder")
     df_filtered = filter_resolved(df_clean)
+    print("filter_resolved klar efter:", time.perf_counter() - start, "sekunder")
     df_loaded = add_market_prob_column(df_filtered)
 
-    df_prices = fetch_all_price_history(df_loaded["yes_token_id"])
+    df_prices = fetch_all_price_history(df_loaded["yes_token_id"],df_loaded["date"]) #thread
+    print("fetch_all_price_history:", time.perf_counter() - start, "sekunder")
     df_prices = df_prices.drop_nulls()
-
     df_result = join_price_lookup(df_loaded,df_prices)
     return df_result
 
