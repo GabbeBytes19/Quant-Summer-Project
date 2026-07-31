@@ -35,6 +35,44 @@ def test_build_probability_vector(monkeypatch):
         assert 0<= val <= 1
     
     
+def test_get_daily_bucket(monkeypatch):
+    fake_df = pl.DataFrame({
+        "groupItemTitle": ["25°C", "20°C or below", "34°C or higher", "26°C", "20°C or below"]
+    })
+    monkeypatch.setattr(fair_value, "build_polymarket_price_dataset", lambda: fake_df)
+
+    buckets = fair_value.get_daily_bucket()
+
+    assert len(buckets) == fake_df.height
+    assert buckets == [(25, 26), (None, 20), (34, None), (26, 27), (None, 20)]
+
+
+def test_get_daily_bucket_raises_on_corrupted_title(monkeypatch):
+    fake_df = pl.DataFrame({"groupItemTitle": ["25-27°C"]})
+    monkeypatch.setattr(fair_value, "build_polymarket_price_dataset", lambda: fake_df)
+
+    with pytest.raises(ValueError):
+        fair_value.get_daily_bucket()
+
+
+def test_get_daily_bucket_feeds_build_probability_vector(monkeypatch):
+    fake_df = pl.DataFrame({
+        "groupItemTitle": ["25°C", "20°C or below", "34°C or higher"]
+    })
+    monkeypatch.setattr(fair_value, "build_polymarket_price_dataset", lambda: fake_df)
+
+    buckets = fair_value.get_daily_bucket()
+    calls = []
+    def probability_function(low, high):
+        calls.append((low, high))
+        return 0.5
+    lst = fair_value.build_probability_vector(probability_function, buckets)
+
+    assert len(lst) == len(buckets) == fake_df.height
+    assert calls == [(25, 26), (None, 20), (34, None)]
+    assert all(val == 0.5 for val in lst)
+
+
 def test_find_correct_bucket(monkeypatch):
     monkeypatch.setattr(fetcher, "fetch_data", lambda *args, **kwargs: synthetic_actual_df())
     monkeypatch.setattr(fetcher,"fetch_previous_forecast_data",lambda *args, **kwargs: synthetic_previous_df())

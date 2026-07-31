@@ -1,11 +1,41 @@
-
-
+import re
+import polars as pl
 from config import settings
+from data.fetcher import build_polymarket_price_dataset
+
 def create_buckets(lower_bound,upper_bound):
     data = []
     for i in range(lower_bound,upper_bound):
         data.append((i,i+1))
     return data
+
+def get_daily_bucket(df_result):
+    buckets = []
+    #df_result = build_polymarket_price_dataset() #Should we have this here , or take from jupyter df_result. Maybe more functons will need this call, need to make it smart, to get called once.
+    df_bucuket_day = df_result["groupItemTitle"].to_list()
+    for bucket in df_bucuket_day:
+        #source: https://www.geeksforgeeks.org/python/python-extract-numbers-from-string/
+        matches = re.findall(r'-?\d*\.?\d+', bucket) 
+        res = [float(x) if '.' in x else int(x) for x in matches]
+        res_int = int(res[0])
+        if len(res) > 1:
+            raise ValueError(f"Something is corrupted with the data,suppost to be one integer per line, now contains :  {res}")
+        if "below" in bucket:
+            lower_bound = None
+            upper_bound = res_int
+
+        elif "higher" in bucket:
+            lower_bound = res_int
+            upper_bound = None
+        else:
+            lower_bound = res_int
+            upper_bound = res_int + 1
+        
+        buckets.append((lower_bound,upper_bound))
+    return buckets
+        
+
+
 
 def build_probability_vector(probability_function,buckets):
     lst = []

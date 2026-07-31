@@ -122,6 +122,21 @@ This means the Phase 2 backtest will have a short history — that is expected a
 - Platform fee ≈ 2% — also deducted from effective_edge
 - Match events carefully: market description must align with your event definition exactly
 
+### ⚠️ Bucket boundaries are per-day, not fixed — confirmed 2026-07-30
+
+Each Hong Kong daily-temperature event is split into several bucket markets (`groupItemTitle`/`groupItemThreshold` per row), but **the actual temperature range covered shifts day to day around that day's forecast** — it is not a fixed global grid. Confirmed directly by comparing real data: 2026-07-19 and 2026-07-20 both used an 11-bucket set spanning 25°C–35°C, while 2026-05-20 used an 11-bucket set spanning roughly 20°C–30°C instead. Same bucket *count*, different bucket *range*.
+
+**Practical consequence:** the model's own fixed grid (`pricing.fair_value.create_buckets(25, 36)`, used throughout Phase 1) must **not** be reused to compute "model fair value" against a specific Polymarket row — that day's actual bucket edges have to be parsed from its own `groupItemTitle` instead.
+
+**`groupItemTitle` string shapes and how they map to `(lower_bound, upper_bound)`** (matching the `None`-for-open-ended convention already used by `gaussian_probability`/`kde_estimate`/`posterior_probability`):
+| `groupItemTitle` shape | Example | `(lower_bound, upper_bound)` |
+|---|---|---|
+| `"X°C"` (plain bucket) | `"21°C"` | `(21, 22)` — same 1-degree width as `create_buckets`' `(i, i+1)` |
+| `"X°C or below"` (open-below tail) | `"20°C or below"` | `(None, 20)` |
+| `"X°C or higher"` (open-above tail) | `"34°C or higher"` | `(34, None)` |
+
+Each row is parsed independently — the two tail buckets are separate rows/outcomes on the same day, not endpoints of one combined interval.
+
 ---
 
 ## Config values (stored in `config/settings.py`)

@@ -198,7 +198,7 @@ def fetch_polymarket_price_history(clob_token_id,date):
 
 
 
-def  build_polymarket_price_dataset():
+def build_polymarket_price_dataset():
     start = time.perf_counter()
     df = fetch_polymarket_data()
     print("fetch_polymarket_data klar efter:", time.perf_counter() - start, "sekunder")

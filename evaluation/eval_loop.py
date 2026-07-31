@@ -34,3 +34,7 @@ def run_eval(prob_fn_factory, buckets, df_pair):
         correct_indices.append(correct_idx)
 
     return prob_matrix,correct_indices                                  
+
+
+def run_eval_loop_polymarket(prob_fn_factory,buckets):
+    
