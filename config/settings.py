@@ -20,7 +20,7 @@ SPECIFIC_DAY = "2017-01-01"
 IS_START = "2000-01-01" #In sample, data we have used to build the model
 IS_END = "2016-12-31"
 OOS_START = "2017-01-01" #Out sample, data the model never has seen
-OOS_END = "2026-06-28"
+OOS_END = (datetime.now() -timedelta(days=1)).strftime('%Y-%m-%d')
 USE_SYNTHECTIC_DATA = True #If you dont want to use real data with API calls, test data with Synthectic data,
 POLYMARKET_START = "2026-01-01" ## Polymarket data only reliable from ~2024
 POLYMARKET_END = "2026-04-28"

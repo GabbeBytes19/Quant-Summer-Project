@@ -231,10 +231,10 @@ def pair_dataframes(df_actual,df_daily_max_predicted):
     return df_pair
 
 def get_specific_day(day : str,df_pair):
-  
+
     df_get_day_temp = df_pair.filter(pl.col("date") == day)
     if df_get_day_temp.is_empty():
-        return f"{day} is not a date in the DataFrame"
+        raise ValueError( f"{day} is not a date in the DataFrame")
     df_get_day_temp_list = df_get_day_temp["daily_max_predicted"].to_list()
     return df_get_day_temp_list[0]
 

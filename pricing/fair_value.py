@@ -35,12 +35,18 @@ def get_daily_bucket(df_result):
     return buckets
         
 
-
-
 def build_probability_vector(probability_function,buckets):
     lst = []
     for low,high in buckets:
         res = probability_function(low,high)
+        lst.append(res)
+    return lst
+
+
+def build_daily_probability_vector(probability_function, buckets, days):
+    lst = []
+    for (low,high),day in zip(buckets,days): 
+        res = probability_function(day,low,high)
         lst.append(res)
     return lst
 
@@ -50,4 +56,5 @@ def find_correct_bucket(actual_temp,buckets):
         if temp[0] <= actual_temp and temp[1] > actual_temp:
             return buckets.index(temp)
     raise ValueError(f"{actual_temp} not in any bucket")
+
 
