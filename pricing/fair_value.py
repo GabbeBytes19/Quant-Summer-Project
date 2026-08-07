@@ -34,24 +34,22 @@ def get_daily_bucket(df_result):
         buckets.append((lower_bound,upper_bound))
     return buckets
 
-def get_bucket_polymarket(df_result,dailty_buckets,create_buckets):
 
-    for low,high in buckets:
-        if low is not None or high is not None: #closed bucket
-            idx = buckets.index(low,high)
+def get_bucket_polymarket(df_result, buckets):
+    row_buckets = get_daily_bucket(df_result)
+    predicted_indices = []
 
-        if low is None: #open bucket
-            while idx < len(buckets) and buckets[idx][1] is None:
-                idx += 1
-            idx = buckets.index(None,buckets[idx][1])
+    for low, high in row_buckets:
+        if low is None or high is None:
+            predicted_indices.append(None)  # open-ended market, not one of the fixed buckets
+            continue
+        try:
+            idx = buckets.index((low, high))
+        except ValueError:
+            idx = None
+        predicted_indices.append(idx)
 
-        if high is None: #open bucket
-            while idx < len(buckets) and buckets[idx][0] is None:
-                idx += 1
-            idx = buckets.index(buckets[idx][0],None)
-       
-
-    df_result = df_result.join(pl.DataFrame({"bucket_index": idx}), on = "date", how = "left" )
+    df_result = df_result.with_columns(pl.Series("predicted_indices", predicted_indices))
     return df_result
 
 def build_probability_vector(probability_function,buckets):

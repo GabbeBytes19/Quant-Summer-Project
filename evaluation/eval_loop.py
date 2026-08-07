@@ -3,7 +3,7 @@ from pricing.fair_value import (
     find_correct_bucket,
     build_probability_vector,
     create_buckets,
-
+    get_bucket_polymarket,
 )
 
 from models.baseline import (
@@ -53,8 +53,9 @@ def run_eval_loop_polymarket(prob_fn_factory,buckets,df_pair,df_result):
         correct_indices.append(correct_idx)
         dates.append(row["date"])
     df_correct= pl.DataFrame({"date": dates, "correct_indices": correct_indices})
+    df_result = get_bucket_polymarket(df_result, buckets)
 
     df_res = df_result.join(df_correct, on = "date", how = "left")
-    df_res = df_res.with_columns(pl.when(pl.col("correct_indices") == pl.col("will be coming later beaucse we dont have data yet")).then(1).otherwise(0).alias("win/loss flag"))
+    df_res = df_res.with_columns(pl.when(pl.col("correct_indices").drop_nulls() == pl.col("predicted_indices").drop_nulls()).then(1).otherwise(0).alias("win/loss flag"))
     return df_res
                         
