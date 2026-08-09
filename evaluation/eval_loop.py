@@ -58,4 +58,16 @@ def run_eval_loop_polymarket(prob_fn_factory,buckets,df_pair,df_result):
     df_res = df_result.join(df_correct, on = "date", how = "left")
     df_res = df_res.with_columns(pl.when(pl.col("correct_indices") == pl.col("predicted_indices")).then(1).otherwise(0).alias("win/loss flag"))
     return df_res
-                        
+
+
+def make_static_factory(prob_fn):
+    def factory(day):
+        return prob_fn
+    return factory
+
+def bayes_static_factory(bayesian_prob_fn):
+    def layer(day):
+        def inner_func(low,high):
+            return bayesian_prob_fn(day,low,high)
+        return inner_func
+    return layer
