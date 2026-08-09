@@ -56,6 +56,6 @@ def run_eval_loop_polymarket(prob_fn_factory,buckets,df_pair,df_result):
     df_result = get_bucket_polymarket(df_result, buckets)
 
     df_res = df_result.join(df_correct, on = "date", how = "left")
-    df_res = df_res.with_columns(pl.when(pl.col("correct_indices").drop_nulls() == pl.col("predicted_indices").drop_nulls()).then(1).otherwise(0).alias("win/loss flag"))
+    df_res = df_res.with_columns(pl.when(pl.col("correct_indices") == pl.col("predicted_indices")).then(1).otherwise(0).alias("win/loss flag"))
     return df_res
                         

@@ -7,15 +7,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 def value_at_risk(df):
-    returns = df["outcomePrices"]
-    if df["outcomePrices"].is_empty():
-        raise ValueError("The 'outcomePrices' column is empty.")
+    if df["profit"].is_empty():
+        raise ValueError("The 'profit' column is empty.")
 
-    var_95 = -df.select(pl.col("outcomePrices").quantile(settings.ALPHA)).item()
+    var_95 = -df.select(pl.col("profit").quantile(settings.ALPHA)).item()
     return var_95
 
 def expected_shortfall(df,var_95):
-    cvar_95 = -df.filter(pl.col("outcomePrices") <= -var_95).select(pl.col("outcomePrices").mean()).item()  
+    cvar_95 = -df.filter(pl.col("profit") <= -var_95).select(pl.col("profit").mean()).item()  
     return cvar_95
 
 
@@ -28,5 +27,6 @@ def expected_shortfall(df,var_95):
 
 
 def rolling_max_dd(df):
-    df_roll_max = df.with_columns(rolling_row_max=pl.col("outcomePrices").rolling_max_by("date",window_size="1h"))
+
+    df_roll_max = df.with_columns(( pl.col("cumulative_profit").cum_max()-pl.col("cumulative_profit")).alias("rolling_max"))
     return df_roll_max
