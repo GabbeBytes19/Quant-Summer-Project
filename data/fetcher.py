@@ -7,6 +7,7 @@ from config import settings
 from data.loader import filter_resolved,add_market_prob_column,join_price_lookup
 from data.cleaner import clean_polymarket_data
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 def store_data(start_date: str, end_date: str):
     items = {
         "latitude": settings.LATITUDE,
@@ -197,6 +198,37 @@ def fetch_polymarket_price_history(clob_token_id,date):
         raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
 
+def get_spread_polymarket():
+    #Source : https://docs.polymarket.com/api-reference/market-data/get-spread
+
+
+    #df_list = df_result["yes_token_id"].to_list()
+    #token_id = df_list[0]
+    token_id = '100219190591120160966457091003186951399728474447451634780784282957470581045794' 
+    dt_start = datetime.strptime("2026-05-30", "%Y-%m-%d")
+    dt_end = datetime.strptime("2026-05-31", "%Y-%m-%d")
+    milliseconds_start = int(dt_start.timestamp() * 1000)
+    milliseconds_end = int(dt_end.timestamp() * 1000)
+    items = {
+            "token_id" : token_id,
+            "start_time": milliseconds_start,
+            "end_time": milliseconds_end,
+    }
+    #url = "https://clob.polymarket.com/spread"
+    url = "https://api.domeapi.io/v1/polymarket/orderbooks"
+    try:
+        data_json = requests.get(url, params=items, timeout=120)
+        print(data_json)
+        data = data_json.json()
+        print(data)
+        if "error" in data:
+            raise ValueError(data["error"])
+        #df_polymarket_history= pl.DataFrame(data["history"])
+    except ValueError:
+        print(f"Error fetching data from {url} with params {items}")
+    return data
+
+        
 
 def build_polymarket_price_dataset():
     start = time.perf_counter()
@@ -213,6 +245,7 @@ def build_polymarket_price_dataset():
     df_prices = df_prices.drop_nulls()
     df_result = join_price_lookup(df_loaded,df_prices)
     return df_result
+
 
 
 def get_daily_max(df_previous): #Maybe moved to data/loader
