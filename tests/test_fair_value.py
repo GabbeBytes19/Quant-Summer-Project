@@ -35,33 +35,30 @@ def test_build_probability_vector(monkeypatch):
         assert 0<= val <= 1
     
     
-def test_get_daily_bucket(monkeypatch):
+def test_get_daily_bucket():
     fake_df = pl.DataFrame({
         "groupItemTitle": ["25°C", "20°C or below", "34°C or higher", "26°C", "20°C or below"]
     })
-    monkeypatch.setattr(fair_value, "build_polymarket_price_dataset", lambda: fake_df)
 
-    buckets = fair_value.get_daily_bucket()
+    buckets = fair_value.get_daily_bucket(fake_df)
 
     assert len(buckets) == fake_df.height
     assert buckets == [(25, 26), (None, 20), (34, None), (26, 27), (None, 20)]
 
 
-def test_get_daily_bucket_raises_on_corrupted_title(monkeypatch):
+def test_get_daily_bucket_raises_on_corrupted_title():
     fake_df = pl.DataFrame({"groupItemTitle": ["25-27°C"]})
-    monkeypatch.setattr(fair_value, "build_polymarket_price_dataset", lambda: fake_df)
 
     with pytest.raises(ValueError):
-        fair_value.get_daily_bucket()
+        fair_value.get_daily_bucket(fake_df)
 
 
-def test_get_daily_bucket_feeds_build_probability_vector(monkeypatch):
+def test_get_daily_bucket_feeds_build_probability_vector():
     fake_df = pl.DataFrame({
         "groupItemTitle": ["25°C", "20°C or below", "34°C or higher"]
     })
-    monkeypatch.setattr(fair_value, "build_polymarket_price_dataset", lambda: fake_df)
 
-    buckets = fair_value.get_daily_bucket()
+    buckets = fair_value.get_daily_bucket(fake_df)
     calls = []
     def probability_function(low, high):
         calls.append((low, high))
