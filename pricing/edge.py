@@ -5,7 +5,10 @@ def prob_market_v_model(p_model,df_result):
     P_Market = df_result["p"]
     edge = P_Model - P_Market 
 
-    df_final = df_result.with_columns(edge = edge )
+    df_final = df_result.with_columns(edge = edge ,p_model = P_Model)
+    
+
+
     return df_final.drop_nulls()
 
 def effective_edge(edge):
