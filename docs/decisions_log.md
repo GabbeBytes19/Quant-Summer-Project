@@ -95,6 +95,75 @@ Format per entry:
 
 ---
 
+## Pricing & Edge
+
+### Decision: `price_paid`/edge use the price-history column `p`, not the settlement snapshot `market_prob`
+- **Alternatives considered:** using `market_prob` (from `outcomePrices.list.first()`, set in `add_market_prob_column`)
+- **Reason:** every row in `df_result` has already passed `filter_resolved` — every market is closed. `outcomePrices` on a fully-resolved binary market is the *final payout*: exactly `1` for the winning side, `0` for the losing side, always — not a snapshot of what anyone actually traded at. `p` (joined via `join_asof` against real price history, at `target = endDate - 1 day`, specifically chosen to land *before* resolution) holds genuine intermediate trading prices instead. Confirmed empirically: filtering `price_paid != 0 and != 1` initially returned **zero rows** when built from `market_prob` — proof the column was always exactly 0 or 1, never anything else.
+- **Date:** 2026-08-11
+
+### Decision: `effective_edge_flag` requires *both* `abs(edge) >= MIN_EDGE` and `abs(effective_edge) >= MIN_EFFECTIVE_EDGE`, not either alone
+- **Alternatives considered:** checking only the raw edge threshold; checking only the fee-adjusted threshold; treating the two as alternatives (OR) instead of both required (AND)
+- **Reason:** the two thresholds answer different questions — "is the raw mispricing big enough to notice" vs. "is it still big enough once costs are subtracted." A row can clear one and fail the other (e.g. raw edge is large but shrinks below the effective bar once spread/fees are subtracted) — both need to hold for a trade to actually be worth taking.
+- **Date:** 2026-08-11
+
+### Decision: flat `spread = 0.05` constant in `effective_edge()`, not real per-market historical spread
+- **Alternatives considered:** Polymarket's own live `/spread`/`/book` CLOB endpoints (only cover currently-open markets — every market here is closed, so these return "no orderbook exists" for all of them); **Dome API** (real, but Polymarket acquired Dome on 2026-02-19 and shut down all Dome APIs by 2026-04-28 — confirmed dead, not just gated); **PolymarketData.co** (real, explicitly paid/tiered); **Bitquery** (provides trade data, not order-book/bid-ask data — wrong kind of data entirely, also $39+/month); **pmxt** (real open-source library, but its order-book fetch appears live-only with no historical/date parameter, plus its own API key + Node.js dependency)
+- **Reason:** full L2 order-book history is expensive to store, so every option either charges, expects self-hosted chain indexing, or only kept trade prices (which can't reconstruct a spread — a fill price isn't the same as the surrounding unfilled bid/ask). Four independent sources hit the same wall. `0.05` (half of Polymarket's own "$0.10 = unusually wide, stop showing midpoint" threshold) is a reasonable moderate-illiquidity assumption, not a random guess. `spread` only affects the `effective_edge_flag` eligibility filter — it is *not* deducted from a trade's realized `profit` (only `FEE_RATE` is).
+- **Date:** 2026-08-11 *(settled — not an open item to revisit without a genuinely new, verified free/simple source appearing)*
+
+---
+
 ## Risk
 
-*(Fill in as you make risk management decisions)*
+### Decision: Kelly is two-sided — negative `f*` means "bet the No side," not "don't bet"
+- **Alternatives considered:** clamping `f*` to `[0, 1]` and never betting when the model disagrees with the market in the negative direction (the original `math_reference.md` plan)
+- **Reason:** `edge = P_model - P_market` is two-sided by construction — positive means the model thinks Yes is underpriced, negative means it thinks Yes is *overpriced* (i.e. No is underpriced). Clamping negative `f*` to 0 would silently discard exactly half of the tradeable signal. `side` is decided from the sign of `edge` in `backtest/engine.py`, and both the probability and the price fed into `kelly_criterion` are flipped to `1 - p_model`/`1 - price` for No-side rows, so Kelly is evaluated against whichever side is actually being bet, not always the raw Yes framing.
+- **Date:** 2026-08-11
+
+### Decision: VaR / Expected Shortfall / max drawdown computed on realized backtest `profit`/`cumulative_profit`, not on raw market data
+- **Alternatives considered:** (accidentally, mid-session) computing these on `outcomePrices` or on `p` (the market price column)
+- **Reason:** `risk/metrics.py` was originally pointed at the wrong columns — market price data describes the *markets*, not the *strategy's* realized gains and losses. VaR/ES need the distribution of per-trade `profit`; max drawdown needs the running peak of `cumulative_profit`. `rolling_max_dd` also needed a genuine fix, not just a column swap — it originally only computed the running peak (`cum_max()`) and never took the final subtraction step to turn that into an actual drawdown value.
+- **Date:** 2026-08-11
+
+### Decision: `stake` computed per-trade via `kelly_criterion`, not a flat constant
+- **Alternatives considered:** a flat hardcoded stake (used as a temporary placeholder mid-session, same reasoning as the spread placeholder)
+- **Reason:** unlike spread, there's no external data problem here — `kelly_criterion` only needs `p_model` and `market_odds`, both of which already exist in the pipeline. A flat stake made every loss identical in size, which made VaR and Expected Shortfall trivially collapse to that one constant — informative that the placeholder was working as expected, but not measuring anything real about the strategy's actual risk. Both the probability and the price side of the Kelly call are attached as dataframe columns early (in `prob_market_v_model`) specifically so they survive every downstream `.filter()` in `engine()` in alignment with everything else, rather than staying at their original, longer, pre-filter length.
+- **Date:** 2026-08-11
+
+---
+
+## Backtest
+
+### Decision: ground truth (win/loss flag) computed once and shared across all models, not recomputed per model
+- **Alternatives considered:** calling `run_eval_loop_polymarket` separately for each model (gauss/KDE/Bayesian), as an early draft did
+- **Reason:** whether a bucket actually occurred is a fact about reality, independent of which model is being evaluated against it. Computing it three times repeats the same `df_pair` loop three times for identical output — wasteful, and it obscures which of the three (identical) results should actually feed into the backtest.
+- **Date:** 2026-08-11
+
+### Decision: day-independent and day-dependent probability functions get two separate factory patterns, not one generic mechanism
+- **Alternatives considered:** a single factory shape for all three models
+- **Reason:** `run_eval_loop_polymarket` needs a uniform `day → (low, high) → probability` interface, but Gaussian/KDE don't actually depend on which day it is (same historical distribution every time), while Bayesian's posterior genuinely depends on that day's specific forecast. `make_static_factory(prob_fn)` handles the day-independent case generically (accepts a day, ignores it, always returns the same wrapped function) — reused for both Gaussian and KDE instead of two near-identical hand-written functions. Bayesian needs its own dedicated three-level closure that actually threads the day through to `posterior_probability(day, low, high)`.
+- **Date:** 2026-08-11
+
+### Decision: filter out rows where `price_paid == 0` or `== 1` before computing profit
+- **Reason:** a price of exactly 0 or 1 produces a division-by-zero (infinite) payout in the Kelly/profit formula. These values show up because the price-history join can land on a moment right at/after resolution rather than a genuine pre-resolution trading price — not a real trading decision under uncertainty, so excluded rather than clipped to an arbitrary floor value.
+- **Date:** 2026-08-11
+
+### Decision: `cumsum()` must run *after* sorting by date, not before
+- **Reason:** `cumulative_profit` is only meaningful as a chronological running total. Computing it before the final `.sort("date")` accumulates in whatever arbitrary row order the data happened to be in internally, then just relabels the (wrong) numbers with the correct dates afterward — caught by checking the arithmetic manually (`cumulative_profit[i] != cumulative_profit[i-1] + profit[i]` in date order) rather than assuming a clean run meant correct output.
+- **Date:** 2026-08-11
+
+---
+
+## Phase 2/3 Summary
+
+**Status: the full edge → Kelly → backtest → risk pipeline is built and runs end-to-end via `python run_experiment.py`, alongside the original Phase 1 pipeline, as of 2026-08-11.**
+
+- Model comparison (Phase 1, re-confirmed): Bayesian beats Gaussian/KDE on both Brier score and log loss.
+- Backtest results are directionally consistent with that finding, though the exact numbers vary run-to-run since Polymarket's dataset is live and constantly growing/updating (see "Known limitations" below) — in one representative run: Bayesian ended with the highest cumulative profit and the *lowest* VaR, Expected Shortfall, and max drawdown of the three models, i.e. it won on every axis, not just accuracy.
+- **Known limitations, tracked as open items (see `roadmap.md` Week 10):**
+  - `stake` and `spread` were both temporary flat placeholders earlier in the session; `stake` is now real (per-trade Kelly), `spread` is a **permanent** documented assumption (see Pricing & Edge above), not a temporary one.
+  - Backtest results are not perfectly reproducible run-to-run at even the same total row count — the underlying Polymarket dataset is live (unbounded, always-current), `settings.OOS_END` is defined as "yesterday" (shifts daily), and individual markets can update between runs.
+  - IS/OOS results are not currently reported *separately* in the backtest (one combined result per model).
+  - No Sharpe ratio; no dedicated Kelly-sensitivity notebook (`08_Risk_Analysis_Kelly.ipynb` still empty).
+- **Date:** 2026-08-11

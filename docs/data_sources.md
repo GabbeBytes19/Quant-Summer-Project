@@ -92,16 +92,22 @@ This gives a roughly balanced class distribution in summer months.
 **Cost:** Free, public API  
 **Docs:** https://docs.polymarket.com/
 
-> Add Polymarket details here when entering Phase 2. Do not integrate before Phase 1 calibration is complete.
-
 ### What we use it for
 - Market-implied probability P_market for matching weather events
 - Input to edge calculation: edge = P_model - P_market
 
-### Key endpoint (to fill in Phase 2)
+### Endpoints actually used (as of Phase 2/3 completion, 2026-08-11)
 ```
-GET https://clob.polymarket.com/markets
+GET https://gamma-api.polymarket.com/events         # market discovery — paginated by series_id, unbounded/live (data/fetcher.py:fetch_polymarket_data)
+GET https://clob.polymarket.com/prices-history       # per-token historical price series, used for market_prob/edge (data/fetcher.py:fetch_polymarket_price_history)
 ```
+`GET https://clob.polymarket.com/markets` (listed here previously) was never actually used — market discovery goes through the Gamma API's `/events` endpoint instead.
+
+### ⚠️ Live/bulk request rate limiting — confirmed 2026-08
+Both the Gamma API and the CLOB price-history endpoint have shown `ConnectionResetError`/SSL handshake failures during this project's bulk fetches (`fetch_all_price_history` hits ~1600+ tokens via 15 concurrent workers). Confirmed via testing that this happens both under heavy concurrency *and* in a plain sequential loop after enough total requests — pointing to request-volume-based throttling (client- or server-side) rather than a burst/concurrency-specific issue. No fix implemented beyond retrying; reducing concurrency and/or adding inter-request delay are the untried mitigations if this becomes a persistent blocker.
+
+### ⚠️ No historical bid/ask spread data exists for resolved markets
+Live `/spread` and `/book` CLOB endpoints only return data for currently-open markets — every market in this project is `closed == True` (already resolved), so these consistently return `{'error': 'No orderbook exists for the requested token id'}`. No historical order-book endpoint exists on Polymarket's own API. Third-party sources checked and ruled out: **Dome API** (real, but Polymarket acquired Dome and shut down all Dome APIs by 2026-04-28), **PolymarketData.co** (real, but paid/tiered), **Bitquery** (provides trade data, not order-book data, also paid), **pmxt** (real library, but appears live-only, no historical date parameter). `pricing/edge.py:effective_edge()` uses a flat, documented placeholder spread constant instead — a permanent decision, see `decisions_log.md`.
 
 ### ⚠️ Data availability constraint
 Polymarket launched in 2020 and weather markets are relatively recent (2023–2024). **Do not assume historical data going back to 2015 exists.**
@@ -139,18 +145,26 @@ Each row is parsed independently — the two tail buckets are separate rows/outc
 
 ---
 
-## Config values (stored in `config/settings.py`)
+## Config values (stored in `config/settings.py`, current as of 2026-08-11)
 ```python
 DEFAULT_CITY = "Hong Kong"
-LATITUDE = 22.32
-LONGITUDE = 114.17
+LATITUDE = 22.3020
+LONGITUDE = 114.1743
 TIMEZONE = "Asia/Hong_Kong"
-HISTORICAL_START = "2015-01-01"     # for actuals (Open-Meteo archive)
-HISTORICAL_END = "2024-12-31"       # for actuals
-POLYMARKET_START = "2024-01-01"     # Polymarket data only reliable from ~2024
-EVENT_THRESHOLD = 30.0              # °C
-MIN_EDGE = 0.05                     # minimum gross edge to consider a signal
-MIN_EFFECTIVE_EDGE = 0.02           # minimum edge after spread + fees
-FRACTIONAL_KELLY = 0.25             # κ
-FEE_RATE = 0.02                     # Polymarket platform fee (~2%)
+HISTORICAL_START = "2021-01-01"     # for actuals (Open-Meteo archive)
+HISTORICAL_END = "2026-04-28"       # for actuals
+FORECAST_START = "2017-01-01"       # for forecast (Open-Meteo historical forecast)
+FORECAST_END = "2026-06-28"
+POLYMARKET_START = "2026-01-01"     # bounds only apply if the (currently dead-code) slug-based fetch path is used — see fetcher.py
+POLYMARKET_END = "2026-04-28"
+EVENT_THRESHOLD = 30.0               # °C
+MIN_EDGE = 0.05                      # minimum gross edge to consider a signal
+MIN_EFFECTIVE_EDGE = 0.02            # minimum edge after spread + fees
+FRACTIONAL_KELLY = 0.25              # κ
+FEE_RATE = 0.02                      # Polymarket platform fee (~2%)
+ALPHA = 0.05                         # α for VaR (5th percentile)
+USE_SYNTHECTIC_DATA = True           # only swaps fetch_data (weather actuals) for synthetic — does NOT cover Polymarket fetching
 ```
+**Dynamic, not fixed:** `OOS_END`, `TOMMORROWS_DATE`, and `TODAYS_DATE_MINUS30` are all computed from `datetime.now()` at import time (e.g. `OOS_END` = yesterday) — they shift every day, which is part of why exact backtest results aren't perfectly reproducible run-to-run (see `decisions_log.md`, Phase 2/3 Summary).
+
+**Note:** `fetch_polymarket_data()` in `data/fetcher.py` currently fetches the *entire* history of `series_id: 11312` (unbounded, paginated), ignoring `POLYMARKET_START`/`POLYMARKET_END` — an earlier date-range-based version of this function exists in the file but is dead code (sits inside a docstring/comment block), never executed.

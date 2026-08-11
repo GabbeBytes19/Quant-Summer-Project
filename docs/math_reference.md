@@ -143,12 +143,17 @@ effective_edge = edge - spread/2 - fee_rate
 ```
 - spread = ask_price - bid_price (bid/ask spread on Polymarket)
 - fee_rate = platform fee (Polymarket charges ~2%)
-- **Only act when effective_edge > 0.** If edge = 2% but spread = 3%, the trade loses money regardless of what Kelly says.
+- **Only act when both `abs(edge) >= MIN_EDGE` and `abs(effective_edge) >= MIN_EFFECTIVE_EDGE`** (see `decisions_log.md` under "Pricing & Edge" — both thresholds must clear, not just one).
+- **Implementation note:** no real per-market historical `spread` exists for resolved Polymarket markets (see `decisions_log.md`) — `pricing/edge.py:effective_edge()` uses a flat, documented placeholder constant instead of a measured value. This is a permanent, deliberate modeling assumption, not a temporary gap.
 
-### Transaction cost in P&L
+### Transaction cost in P&L — **as actually implemented, differs from the formula above**
 ```
-net_pnl = gross_pnl - (stake × fee_rate) - (stake × spread/2)
+# backtest/engine.py — win:
+profit = stake * (1 / price_paid - 1) * (1 - FEE_RATE)
+# loss:
+profit = -stake
 ```
+- Only `FEE_RATE` is deducted from realized profit. **`spread` is not** — it only gates which trades are *eligible* to be taken at all (via `effective_edge_flag`), it never reduces a taken trade's actual payoff. The `net_pnl = gross_pnl - (stake × fee_rate) - (stake × spread/2)` formula above was the original plan; the actual implementation folds the fee multiplicatively into the win case instead, and treats spread purely as a selectivity filter rather than a per-trade cost line item.
 
 ### Market-implied probability (from decimal odds)
 ```
@@ -183,7 +188,9 @@ Edge form:
 f* = edge / b
 ```
 
-**Constraint:** f* must be clamped to [0, 1]. If f* < 0, do not bet.
+**Constraint (original plan):** f* must be clamped to [0, 1]. If f* < 0, do not bet.
+
+**As actually implemented:** `risk/kelly.py` does **not** clamp negative `f*` to 0. Since `edge` is two-sided (`P_model - P_market`, positive *or* negative), a negative `f*` is meaningful — it signals betting the *No* side rather than "don't bet." `backtest/engine.py` decides `side` from the sign of `edge`, then evaluates `p` and `price_paid` for whichever side was chosen (flipping to `1 - p_model`/`1 - price` for No), so the Kelly formula above is always evaluated against the side actually being bet, not always the raw Yes framing. See `decisions_log.md` under "Risk."
 
 ### Fractional Kelly
 ```
@@ -211,6 +218,8 @@ More informative than VaR — captures tail risk.
 MDD = max_{t ∈ [0,T]} (peak_t - trough_t) / peak_t
 ```
 The largest peak-to-trough decline in portfolio value as a fraction of peak.
+
+**Implementation note:** `risk/metrics.py:rolling_max_dd()` computes the **absolute** peak-to-current gap (`cum_max(cumulative_profit) - cumulative_profit`) at every point, not divided by the peak — i.e. it returns a currency-denominated drawdown series, not a fraction. The single worst value in that series (its `.max()`) is what `backtest/pnl.py:get_pnl()` reports as "rolling max." Dividing by the running peak to get a true fractional `MDD` is not currently implemented.
 
 ---
 

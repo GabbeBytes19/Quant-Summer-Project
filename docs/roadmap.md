@@ -75,25 +75,25 @@ Goal: bring in Polymarket, detect mispricing, size positions.
 
 ### Week 6 — Polymarket Integration + Pricing
 **Deliverables:**
-- [ ] `data/fetcher.py` extended — pull Polymarket market odds for matching events
-- [ ] `pricing/fair_value.py` — model probability → fair value price
-- [ ] `pricing/edge.py` — edge = P_model - P_market
-- [ ] `notebooks/08_Risk_Analysis_Kelly.ipynb` (partial) — plot edge over time
+- [x] `data/fetcher.py` extended — pull Polymarket market odds for matching events
+- [x] `pricing/fair_value.py` — model probability → fair value price
+- [x] `pricing/edge.py` — edge = P_model - P_market
+- [x] `notebooks/07_Full_Backtest.ipynb` — plot edge over time *(landed here instead of `08`, since `08` ended up focused purely on Kelly/risk numbers — see Week 7 note)*
 
-**Definition of done:** For a given date, you can compute edge between your model and Polymarket.
+**Definition of done:** ✅ For a given date, you can compute edge between your model and Polymarket.
 
 ---
 
 ### Week 7 — Risk Management
 **Deliverables:**
-- [ ] `risk/kelly.py` — Kelly criterion, fractional Kelly
-- [ ] `risk/metrics.py` — VaR, Expected Shortfall, drawdown
-- [ ] Transaction costs wired in: `config/settings.py` → `FEE_RATE`, spread deducted in `backtest/pnl.py`
-- [ ] `pricing/edge.py` — compute both gross edge and effective_edge (after spread + fees)
-- [ ] `tests/test_kelly.py` — f* never > 1.0 or < 0, behaves correctly at edge=0, returns 0 when effective_edge ≤ 0
-- [ ] `notebooks/08_Risk_Analysis_Kelly.ipynb` (complete) — Kelly sizing + sensitivity analysis, show how spread kills thin-edge trades
+- [x] `risk/kelly.py` — Kelly criterion, fractional Kelly
+- [x] `risk/metrics.py` — VaR, Expected Shortfall, drawdown
+- [~] Transaction costs wired in: `config/settings.py` → `FEE_RATE` is deducted from realized P&L in `backtest/engine.py`; **spread is not** — it only gates *eligibility* via `effective_edge_flag`, it's never subtracted from a trade's realized payoff. See `decisions_log.md` for why (spread has no real per-market data source; realized P&L only ever deducts the platform fee).
+- [x] `pricing/edge.py` — compute both gross edge and effective_edge (after spread + fees)
+- [x] `tests/test_kelly.py` — f* stays bounded for extreme inputs, sign matches model-vs-market direction, fractional scaling applied. *(Note: "never < 0" from the original plan is no longer the right constraint — see `decisions_log.md`, Kelly is deliberately two-sided now: negative f* signals betting the No side, not "don't bet.")*
+- [ ] `notebooks/08_Risk_Analysis_Kelly.ipynb` — Kelly sizing + sensitivity analysis — **not built**; Kelly/risk numbers currently only surface via `backtest/pnl.py:get_pnl()`'s printed summary, not a dedicated notebook. Still open.
 
-**Definition of done:** Given an edge and spread, system computes effective_edge and only sizes a position when effective_edge > 0. You can show how f* changes with edge and odds.
+**Definition of done:** ✅ Given an edge and spread, system computes effective_edge and only sizes a position when effective_edge_flag clears both thresholds. ⚠️ The "show how f* changes with edge and odds" sensitivity-analysis half is not done.
 
 ---
 
@@ -104,26 +104,32 @@ Goal: end-to-end backtest, optional live execution.
 
 ### Week 8 — Backtest Engine
 **Deliverables:**
-- [ ] `backtest/engine.py` — walk-forward loop, strict IS/OOS boundary enforced in code
-- [ ] `backtest/pnl.py` — P&L tracking with transaction costs deducted, Sharpe ratio, max drawdown
-- [ ] `notebooks/07_Full_Backtest.ipynb` — run full backtest; clearly label IS vs OOS periods on all plots
-- [ ] Note Polymarket data constraint in notebook: Phase 2 edge backtest limited to ~2024 onwards
+- [~] `backtest/engine.py` — walk-forward loop built and tested; IS/OOS boundary is enforced *upstream* (via `settings.OOS_START`/`OOS_END` bounding what data reaches the engine), not as an explicit check inside `engine()` itself.
+- [~] `backtest/pnl.py` — P&L tracking with transaction costs (fee only, see Week 7 note) and max drawdown are done via `run_all_models`/`get_pnl`. **No Sharpe ratio** — not built.
+- [~] `notebooks/07_Full_Backtest.ipynb` — full backtest pipeline built and run here; IS/OOS periods are **not** explicitly labeled on plots.
+- [x] Polymarket data constraint — documented in `docs/data_sources.md`.
 
-**Definition of done:** System simulates historical decisions and produces a P&L curve with statistics. IS and OOS results are reported separately. Transaction costs are visible in the P&L breakdown.
+**Definition of done:** ✅ System simulates historical decisions and produces a P&L series (`profit`/`cumulative_profit`) with VaR/Expected Shortfall/max drawdown, per model, side by side. ⚠️ IS/OOS results are not reported *separately* — the backtest currently reports one combined result per model, not split by IS/OOS.
 
 ---
 
 ### Week 9 — Polish + Documentation
 **Deliverables:**
-- [ ] README.md updated — project description, how to run, results summary
-- [ ] All notebooks narratively complete (readable as a research report)
-- [ ] All tests passing
-- [ ] `decisions_log.md` fully updated
-- [ ] `run_experiment.py` covers full pipeline
+- [x] README.md updated — project description, how to run, results summary
+- [ ] All notebooks narratively complete — `07_Full_Backtest.ipynb` still has commented-out exploratory cells; not yet a clean, readable research report.
+- [x] All tests passing (`pytest tests/` — 37 passed)
+- [x] `decisions_log.md` fully updated
+- [x] `run_experiment.py` covers full pipeline — extended this session to run Phase 1 (scoring/calibration) *and* Phase 2/3 (edge → Kelly → backtest → risk) end-to-end in one script.
 
-**Definition of done:** The repo is interview-ready. You can walk someone through it in 10 minutes.
+**Definition of done:** Mostly there — reproducible, tested, documented end-to-end. Not fully "interview-ready in 10 minutes" yet, since notebook 07 itself is still a working scratchpad rather than a clean narrative.
 
 ---
 
 ## Week 10 — Buffer
 For anything that slipped, extra experimentation, or extending models.
+
+- [ ] **Live "what to bet on today" recommendation loop** — reuse the existing model-probability + edge/effective_edge/Kelly pipeline, but pointed at *currently open* Polymarket markets (`closed == False`) instead of resolved ones, comparing today's model probability against today's live price. No ground-truth/win-loss step needed (outcome isn't known yet). Wrap in a simple `while True: run(); time.sleep(N)` loop living in `execution/loop.py` (previously empty) — no server/cloud hosting, just a long-running local process. Interval should stay conservative (15-30 min) given this session's repeated experience with both Polymarket and Open-Meteo rate limits under rapid repeated requests.
+- [ ] Sharpe ratio in `backtest/pnl.py`
+- [ ] `notebooks/08_Risk_Analysis_Kelly.ipynb` — Kelly sensitivity analysis (f* vs. edge, f* vs. odds)
+- [ ] Real per-market spread, if a viable source ever appears — see `decisions_log.md`; currently a settled, permanent flat-assumption decision, not an open search.
+- [ ] IS/OOS split reported separately in the backtest (currently one combined result per model)

@@ -29,25 +29,30 @@ Quant-Summer-Project/
 │
 ├── backtest/
 │   ├── __init__.py
-│   ├── engine.py           # walk-forward simulation loop
-│   └── pnl.py              # P&L tracking and strategy statistics
+│   ├── engine.py           # per-model backtest: filter by effective_edge_flag, decide side, size via Kelly, compute profit/cumulative_profit
+│   └── pnl.py              # run_all_models() loops engine() across models; get_pnl() prints profit/VaR/Expected Shortfall/max drawdown/trade count per model
 │
 ├── evaluation/
 │   ├── __init__.py
 │   ├── scoring.py          # Brier score, log loss
 │   └── calibration.py      # calibration curves, reliability diagrams
 │
-├── execution/              # Phase 3 only — leave empty for now
+├── execution/              # Phase 3 / Week 10 buffer
 │   ├── __init__.py
-│   └── loop.py             # async trading loop, order management
+│   └── loop.py             # planned: `while True: run(); sleep(N)` loop for a live "what to bet on today" recommendation against currently-open markets — not yet built, see roadmap.md Week 10
 │
 ├── tests/
 │   ├── fixtures/
 │   │   └── synthetic_data.py   # fake Open-Meteo responses (same schema as real API) — avoids rate limits during dev
-│   ├── test_kelly.py       # Kelly never returns f* > 1.0 or < 0
+│   ├── test_kelly.py       # sign/bounds of f*, fractional scaling applied
 │   ├── test_scoring.py     # Brier/log-loss edge cases
 │   ├── test_bayesian.py    # posterior sums to 1, updates correctly
-│   └── test_data.py        # fetcher returns expected schema
+│   ├── test_data.py        # fetcher returns expected schema
+│   ├── test_fair_value.py  # bucket parsing, open-ended buckets, probability vector building
+│   ├── test_edge.py        # prob_market_v_model doesn't mutate input; effective_edge_flag requires both thresholds
+│   ├── test_engine.py      # excludes price_paid==0/1; win/loss logic; cumulative_profit is a true running total
+│   ├── test_eval_loop.py   # open-ended buckets get None; ground truth matches by date, not row position
+│   └── test_metrics.py     # drawdown never negative; VaR/Expected Shortfall match manual calculation
 │
 ├── config/
 │   ├── settings.py         # global constants (coordinates, timeframes, thresholds)
