@@ -162,7 +162,7 @@ def fetch_all_price_history(token_ids,date):
         for token_idx, (token_id, history_df) in enumerate(zip(token_ids, results)):
             all_histories.append(history_df.with_columns(pl.lit(token_id).alias("yes_token_id")))
             if (token_idx + 1) % 50 == 0:
-                print(f"We are on {token_idx + 1} of {progress}, this took{ time.perf_counter() - start} seconds ")
+                print(f"We are on {token_idx + 1} of {progress}, this took {round(time.perf_counter() - start,2)} seconds ")
         
     return pl.concat(all_histories, how="diagonal_relaxed").sort("yes_token_id","t")
  
@@ -235,7 +235,7 @@ def build_polymarket_price_dataset():
     df = fetch_polymarket_data()
     print("fetch_polymarket_data done after:", time.perf_counter() - start,  "seconds")
     df_clean = clean_polymarket_data(df)
-    print("clean_polymarket_data done after:", time.perf_counter() - start,  "sekunder")
+    print("clean_polymarket_data done after:", time.perf_counter() - start,  "seconds")
     df_filtered = filter_resolved(df_clean)
     print("filter_resolved done after:", time.perf_counter() - start, "seconds")
     df_loaded = add_market_prob_column(df_filtered)

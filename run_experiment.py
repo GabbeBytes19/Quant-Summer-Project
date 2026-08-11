@@ -12,13 +12,15 @@ from evaluation.scoring import brier_score , log_loss, skill_score
 from evaluation.calibration import  get_guessed_prob,calculate_buckets
 from backtest.pnl import run_all_models,get_pnl
 
+
 def use_synthectic_data():
     if settings.USE_SYNTHECTIC_DATA:
         return (
             lambda *args, **kwargs: synthetic_actual_df()
         )
     else:
-        return (fetcher.fetch_data,)
+        return fetcher.fetch_data
+
 def fetch_all_data():
     fetch_data = use_synthectic_data()
 
@@ -142,6 +144,7 @@ def run_system():
 
 
 def run_experiment():
+    print("Fetching wheather data...")
     fetch_all_data()
     run_system()
 
