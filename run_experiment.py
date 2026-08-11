@@ -3,25 +3,26 @@ from data import fetcher, cleaner,loader
 from config import settings
 from models.bayesian_model import bayesian_interference
 from tests.fixtures.synthetic_data import synthetic_actual_df, synthetic_previous_df
-from pricing.fair_value import create_buckets
+from pricing.fair_value import create_buckets,get_daily_bucket,build_probability_vector,build_daily_probability_vector
 from models.baseline import gaussian_probability
 from models.kde_model import kde_estimate
 from models.bayesian_model import posterior_probability
-from evaluation.eval_loop import run_eval
+from evaluation.eval_loop import run_eval,make_static_factory,bayes_static_factory,run_eval_loop_polymarket
 from evaluation.scoring import brier_score , log_loss, skill_score
 from evaluation.calibration import  get_guessed_prob,calculate_buckets
+from backtest.pnl import run_all_models,get_pnl
 
 def use_synthectic_data():
     if settings.USE_SYNTHECTIC_DATA:
-        fetch_data = lambda *args, **kwargs: synthetic_actual_df()
-        fetch_previous_forecast_data = lambda *args, **kwargs: synthetic_previous_df()
-        get_tommorows_wheather = lambda *args, **kwargs: 30
+        return (
+            lambda *args, **kwargs: synthetic_actual_df()
+        )
     else:
-        pass
+        return (fetcher.fetch_data,)
 def fetch_all_data():
-    use_synthectic_data()
+    fetch_data = use_synthectic_data()
 
-    df_raw = fetcher.fetch_data(settings.IS_START,settings.IS_END)
+    df_raw = fetch_data(settings.IS_START,settings.IS_END)
     df_clean = cleaner.clean_data(df_raw)
     df_event = loader.add_event_column(df_clean)
     df_temp_summer = loader.filter_summer(df_event)
@@ -30,7 +31,7 @@ def fetch_all_data():
     df_pair = fetcher.call_fetcher_functions(settings.OOS_START, settings.OOS_END)
 
     return df_summer, df_pair
-def run_models():
+def run_system():
     df_summer, df_pair = fetch_all_data()
     buckets = create_buckets(settings.LOWER_BOUND,settings.UPPER_BOUND)
 
@@ -38,6 +39,8 @@ def run_models():
     kde_prob_fn = lambda low, high: kde_estimate(df_summer, low, high)
 
     bayesian_factory = lambda day: (lambda low, high: posterior_probability(df_summer, day, df_pair, low, high))
+
+    bayesian_prob_fn = lambda day, low, high: posterior_probability(df_summer, day, df_pair, low, high) 
 
     prob_matrix_gauss, correct_indices_gauss = run_eval(lambda day: gaussian_prob_fn, buckets, df_pair)
     prob_matrix_kde, correct_indices_kde = run_eval(lambda day: kde_prob_fn, buckets, df_pair)
@@ -59,7 +62,6 @@ def run_models():
     bayes_v_gauss_log = skill_score(log_loss_bayes,log_loss_gauss)
     bayes_v_kde_log = skill_score(log_loss_bayes, log_loss_kde)
 
-
     guessed_prob_gauss = get_guessed_prob(prob_matrix_gauss,correct_indices_gauss)
     guessed_prob_kde = get_guessed_prob(prob_matrix_kde,correct_indices_kde)
     guessed_prob_bayes = get_guessed_prob(prob_matrix_bayes,correct_indices_bayes)
@@ -67,6 +69,35 @@ def run_models():
     data_gauss = calculate_buckets(guessed_prob_gauss)
     data_kde = calculate_buckets(guessed_prob_kde)
     data_bayes = calculate_buckets(guessed_prob_bayes)
+
+
+    df_result = fetcher.build_polymarket_price_dataset()
+
+
+    gauss_fn_factory = make_static_factory(gaussian_prob_fn)
+
+    kde_fn_factory = make_static_factory(kde_prob_fn)
+    
+
+    bayes_fn_factory = bayes_static_factory(bayesian_prob_fn)
+   
+
+    eval_loop = run_eval_loop_polymarket(gauss_fn_factory,buckets,df_pair,df_result)
+
+   
+
+    lst_buckets = get_daily_bucket(df_result)
+    lst_days  = df_result["date"].to_list()
+
+    p_gauss = build_probability_vector(gaussian_prob_fn, lst_buckets)
+    p_kde =  build_probability_vector(kde_prob_fn, lst_buckets)
+    p_bayes = build_daily_probability_vector(bayesian_prob_fn, lst_buckets,lst_days)
+
+    models = {"gauss":p_gauss,"kde":p_kde,"bayes":p_bayes}
+    results = run_all_models(eval_loop, models)
+
+    get_pnl(results)
+
 
     scores = [
         ("Gaussian", brier_gauss, log_loss_gauss),
@@ -112,7 +143,7 @@ def run_models():
 
 def run_experiment():
     fetch_all_data()
-    run_models()
+    run_system()
 
 
 # Source - https://stackoverflow.com/q/419163

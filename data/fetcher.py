@@ -233,15 +233,15 @@ def get_spread_polymarket():
 def build_polymarket_price_dataset():
     start = time.perf_counter()
     df = fetch_polymarket_data()
-    print("fetch_polymarket_data klar efter:", time.perf_counter() - start, "sekunder")
+    print("fetch_polymarket_data done after:", time.perf_counter() - start,  "seconds")
     df_clean = clean_polymarket_data(df)
-    print("clean_polymarket_data klar efter:", time.perf_counter() - start, "sekunder")
+    print("clean_polymarket_data done after:", time.perf_counter() - start,  "sekunder")
     df_filtered = filter_resolved(df_clean)
-    print("filter_resolved klar efter:", time.perf_counter() - start, "sekunder")
+    print("filter_resolved done after:", time.perf_counter() - start, "seconds")
     df_loaded = add_market_prob_column(df_filtered)
 
     df_prices = fetch_all_price_history(df_loaded["yes_token_id"],df_loaded["date"]) #thread
-    print("fetch_all_price_history:", time.perf_counter() - start, "sekunder")
+    print("fetch_all_price_history done after:", time.perf_counter() - start,  "seconds")
     df_prices = df_prices.drop_nulls()
     df_result = join_price_lookup(df_loaded,df_prices)
     return df_result
