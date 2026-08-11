@@ -32,23 +32,17 @@ The goal is **probabilistic accuracy and risk-adjusted decision quality** — no
 pip install -r requirements.txt
 ```
 
-**Phase 1 pipeline (model comparison + calibration only):**
+**Full pipeline, one command:**
 
 ```bash
 python3 run_experiment.py
 ```
 
-This fetches weather data, fits all three probability models, and prints Brier score, log loss, skill scores, and calibration tables. It does **not** yet cover the Phase 2/3 pipeline below — see "Known limitations."
+This runs everything end-to-end: fetches weather + Polymarket data, fits all three probability models, prints Brier score/log loss/skill scores/calibration tables (Phase 1), then computes ground truth once, builds each model's probability vector, computes edge/effective_edge, runs the backtest per model via `backtest.engine.engine`, and prints profit/VaR/Expected Shortfall/max drawdown/trade count per model via `backtest.pnl.get_pnl` (Phase 2/3). No notebook required.
 
-**Full pipeline (edge → Kelly → backtest → risk):**
+Set `USE_SYNTHECTIC_DATA = True` in `config/settings.py` to swap the weather-actuals fetch for fast, offline synthetic data during development — note this only covers the weather side, Polymarket fetching always hits the live API regardless.
 
-Currently lives in `notebooks/07_Full_Backtest.ipynb`, run top to bottom. It:
-- builds the weather + Polymarket datasets,
-- computes ground truth (`evaluation.eval_loop.run_eval_loop_polymarket`) once,
-- computes each model's probability vector,
-- computes edge (`pricing.edge.prob_market_v_model`, `effective_edge`),
-- runs the backtest per model (`backtest.engine.engine`),
-- computes VaR / Expected Shortfall / drawdown on each model's result (`risk.metrics`).
+The same pipeline is also explorable step-by-step in `notebooks/07_Full_Backtest.ipynb`.
 
 **Tests:**
 
@@ -56,17 +50,18 @@ Currently lives in `notebooks/07_Full_Backtest.ipynb`, run top to bottom. It:
 pytest tests/
 ```
 
-## Results summary (illustrative, not final — see limitations)
+## Results summary (illustrative — see limitations on reproducibility)
 
-- **Model comparison**: the Bayesian model clearly outperforms the Gaussian and KDE baselines on both proper scoring rules — Brier score ≈ 0.744 vs. ≈ 0.885–0.889, and a similar gap in log loss. This tracks through the rest of the pipeline: the Bayesian backtest also ends with the highest cumulative profit of the three models.
+- **Model comparison**: the Bayesian model clearly outperforms the Gaussian and KDE baselines on both proper scoring rules — Brier score ≈ 0.77–0.90 vs. ≈ 0.90–1.03 depending on the run, and a similar gap in log loss.
 - **Calibration**: all three models are reasonably calibrated across probability buckets on out-of-sample data; the Bayesian model's calibration is checked bucket-by-bucket against realized outcomes in `notebooks/06_Calibration_Analysis.ipynb`.
-- **Edge distribution**: model vs. market edge is centered near zero for all three models (the market and the models mostly agree), with the Bayesian model showing a visible mass of larger positive-edge opportunities that the Gaussian/KDE models don't pick up — consistent with it being the better-calibrated model.
-- **Backtest**: after filtering for markets that clear both the raw-edge and fee-adjusted-edge thresholds, all three models are net profitable over the sampled period, with Bayesian outperforming.
+- **Backtest**: this tracks through cleanly into the backtest — in every run so far, Bayesian has ended with the highest cumulative profit *and* the lowest VaR, Expected Shortfall, and max drawdown of the three models. One representative run: Bayesian profit 85.2 / VaR 0.096 / Expected Shortfall 0.146 / max drawdown 1.13, vs. Gaussian profit 39.2 / VaR 0.174 / Expected Shortfall 0.219 / max drawdown 2.43 (KDE landed close to Gaussian). Better-calibrated probabilities are translating into better risk-adjusted outcomes, not just better scores in isolation.
 
-## Known limitations (deliberately placeholder, tracked as next steps)
+## Known limitations
 
-- **Position sizing is currently a flat constant, not a real Kelly stake.** `risk.kelly.kelly_criterion` exists and is correct, but the backtest hasn't been wired to call it per-trade yet — every trade currently risks the same fixed amount regardless of the model's actual edge or the market's odds.
-- **Spread is a flat assumed constant, not real historical data.** Polymarket's live order-book API only covers currently-open markets; every market in this backtest is already resolved, so there's no live order book left to query. Real historical spread would require a paid third-party API (checked: Dome API, PolymarketData.co — both gated behind signup). `settings.ASSUMED_SPREAD` is used as an explicit, documented stand-in.
-- Because of the two points above, the VaR/Expected Shortfall numbers currently collapse to the flat stake value (every loss is identical in size), so they aren't yet measuring real tail risk — that becomes meaningful once real Kelly sizing is in place.
-- `backtest/pnl.py` is scaffolded but empty — a natural home for a wrapper that runs all three models and collects results together, instead of calling `engine()` three times by hand.
-- `run_experiment.py` only covers the Phase 1 (model comparison / calibration) pipeline — it hasn't been extended to run the edge / Kelly / backtest / risk pipeline yet.
+- **Backtest results aren't perfectly reproducible run-to-run**, even at a matching total market count. Polymarket's dataset is live/unbounded and always growing, `settings.OOS_END` is defined as "yesterday" (shifts daily), and individual markets can update between runs — so treat specific numbers above as illustrative of the *pattern* (Bayesian wins on every axis), not as fixed values you should expect to reproduce exactly.
+- **Spread is a flat assumed constant** (`spread = 0.05` in `pricing/edge.py:effective_edge()`), not real historical data — and this is a **permanent** decision, not a temporary gap. Polymarket's live order-book API only covers currently-open markets (every market here is already resolved). Checked and ruled out: Dome API (real, but Polymarket acquired and shut it down in April 2026), PolymarketData.co (paid/tiered), Bitquery (wrong kind of data — trades, not order books — also paid), pmxt (live-only, no historical support). Full L2 order-book history is expensive enough to store that every option either charges, expects self-hosted chain indexing, or doesn't have the real bid/ask at all. See `docs/decisions_log.md`.
+- **No Sharpe ratio**, and IS/OOS results aren't reported *separately* in the backtest (one combined result per model) — both tracked as open items.
+- `notebooks/08_Risk_Analysis_Kelly.ipynb` (Kelly sensitivity analysis, f* vs. edge/odds) is still empty.
+- A live "what should I bet on today" recommendation loop (reusing this same pipeline against currently-open markets instead of resolved ones) is sketched but not yet built — see `docs/roadmap.md`, Week 10.
+
+See `docs/decisions_log.md` and `docs/roadmap.md` for the full history and current status of every module.

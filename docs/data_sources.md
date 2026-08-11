@@ -8,7 +8,7 @@
 **Cost:** Free, no API key required  
 **Docs:** https://open-meteo.com/en/docs
 
-### ⚠️ Look-Ahead Bias Warning
+### Look-Ahead Bias Warning
 The archive endpoint returns **observed actuals** — what really happened. This is correct for scoring model predictions, but **must never be used as input features for training**. A model trained on actuals would implicitly "know the future."
 
 For Phase 1, the safe approach is **walk-forward validation**: train only on data strictly before date t, predict for t, score against actuals at t. Never let actuals at t leak into the training window.
@@ -103,13 +103,13 @@ GET https://clob.polymarket.com/prices-history       # per-token historical pric
 ```
 `GET https://clob.polymarket.com/markets` (listed here previously) was never actually used — market discovery goes through the Gamma API's `/events` endpoint instead.
 
-### ⚠️ Live/bulk request rate limiting — confirmed 2026-08
+### Live/bulk request rate limiting — confirmed 2026-08
 Both the Gamma API and the CLOB price-history endpoint have shown `ConnectionResetError`/SSL handshake failures during this project's bulk fetches (`fetch_all_price_history` hits ~1600+ tokens via 15 concurrent workers). Confirmed via testing that this happens both under heavy concurrency *and* in a plain sequential loop after enough total requests — pointing to request-volume-based throttling (client- or server-side) rather than a burst/concurrency-specific issue. No fix implemented beyond retrying; reducing concurrency and/or adding inter-request delay are the untried mitigations if this becomes a persistent blocker.
 
-### ⚠️ No historical bid/ask spread data exists for resolved markets
+### No historical bid/ask spread data exists for resolved markets
 Live `/spread` and `/book` CLOB endpoints only return data for currently-open markets — every market in this project is `closed == True` (already resolved), so these consistently return `{'error': 'No orderbook exists for the requested token id'}`. No historical order-book endpoint exists on Polymarket's own API. Third-party sources checked and ruled out: **Dome API** (real, but Polymarket acquired Dome and shut down all Dome APIs by 2026-04-28), **PolymarketData.co** (real, but paid/tiered), **Bitquery** (provides trade data, not order-book data, also paid), **pmxt** (real library, but appears live-only, no historical date parameter). `pricing/edge.py:effective_edge()` uses a flat, documented placeholder spread constant instead — a permanent decision, see `decisions_log.md`.
 
-### ⚠️ Data availability constraint
+### Data availability constraint
 Polymarket launched in 2020 and weather markets are relatively recent (2023–2024). **Do not assume historical data going back to 2015 exists.**
 
 | Use case | Data available |
@@ -128,7 +128,7 @@ This means the Phase 2 backtest will have a short history — that is expected a
 - Platform fee ≈ 2% — also deducted from effective_edge
 - Match events carefully: market description must align with your event definition exactly
 
-### ⚠️ Bucket boundaries are per-day, not fixed — confirmed 2026-07-30
+### Bucket boundaries are per-day, not fixed — confirmed 2026-07-30
 
 Each Hong Kong daily-temperature event is split into several bucket markets (`groupItemTitle`/`groupItemThreshold` per row), but **the actual temperature range covered shifts day to day around that day's forecast** — it is not a fixed global grid. Confirmed directly by comparing real data: 2026-07-19 and 2026-07-20 both used an 11-bucket set spanning 25°C–35°C, while 2026-05-20 used an 11-bucket set spanning roughly 20°C–30°C instead. Same bucket *count*, different bucket *range*.
 
@@ -145,7 +145,7 @@ Each row is parsed independently — the two tail buckets are separate rows/outc
 
 ---
 
-## Config values (stored in `config/settings.py`, current as of 2026-08-11)
+## Config values (full contents of `config/settings.py`, current as of 2026-08-11)
 ```python
 DEFAULT_CITY = "Hong Kong"
 LATITUDE = 22.3020
@@ -155,15 +155,22 @@ HISTORICAL_START = "2021-01-01"     # for actuals (Open-Meteo archive)
 HISTORICAL_END = "2026-04-28"       # for actuals
 FORECAST_START = "2017-01-01"       # for forecast (Open-Meteo historical forecast)
 FORECAST_END = "2026-06-28"
+EVENT_THRESHOLD = 30.0              # °C
+MIN_EDGE = 0.05                     # minimum gross edge to consider a signal
+MIN_EFFECTIVE_EDGE = 0.02           # minimum edge after spread + fees
+FRACTIONAL_KELLY = 0.25             # κ
+ALPHA = 0.05                        # α for VaR (5th percentile)
+FEE_RATE = 0.02                     # Polymarket platform fee (~2%)
+MAX_NULL_GAP = 5                    # max consecutive nulls tolerated before discarding a data run
+LOWER_BOUND = 25                    # lower edge of the fixed climatology bucket grid
+UPPER_BOUND = 36                    # upper edge of the fixed climatology bucket grid
+SPECIFIC_DAY = "2017-01-01"
+IS_START = "2000-01-01"             # in-sample: used to build the model
+IS_END = "2016-12-31"
+OOS_START = "2017-01-01"            # out-of-sample: never seen by the model
+USE_SYNTHECTIC_DATA = True          # only swaps fetch_data (weather actuals) for synthetic — does NOT cover Polymarket fetching
 POLYMARKET_START = "2026-01-01"     # bounds only apply if the (currently dead-code) slug-based fetch path is used — see fetcher.py
 POLYMARKET_END = "2026-04-28"
-EVENT_THRESHOLD = 30.0               # °C
-MIN_EDGE = 0.05                      # minimum gross edge to consider a signal
-MIN_EFFECTIVE_EDGE = 0.02            # minimum edge after spread + fees
-FRACTIONAL_KELLY = 0.25              # κ
-FEE_RATE = 0.02                      # Polymarket platform fee (~2%)
-ALPHA = 0.05                         # α for VaR (5th percentile)
-USE_SYNTHECTIC_DATA = True           # only swaps fetch_data (weather actuals) for synthetic — does NOT cover Polymarket fetching
 ```
 **Dynamic, not fixed:** `OOS_END`, `TOMMORROWS_DATE`, and `TODAYS_DATE_MINUS30` are all computed from `datetime.now()` at import time (e.g. `OOS_END` = yesterday) — they shift every day, which is part of why exact backtest results aren't perfectly reproducible run-to-run (see `decisions_log.md`, Phase 2/3 Summary).
 
