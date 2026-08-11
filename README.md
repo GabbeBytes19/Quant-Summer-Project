@@ -35,7 +35,7 @@ pip install -r requirements.txt
 **Phase 1 pipeline (model comparison + calibration only):**
 
 ```bash
-python run_experiment.py
+python3 run_experiment.py
 ```
 
 This fetches weather data, fits all three probability models, and prints Brier score, log loss, skill scores, and calibration tables. It does **not** yet cover the Phase 2/3 pipeline below — see "Known limitations."
