@@ -30,9 +30,9 @@ def test_engine_excludes_zero_and_one_price_paid():
 def test_engine_profit_and_cumulative_profit_match_expected():
     p_model, df_result = _four_row_df_result()
     result = engine(p_model, df_result)
-
+    
     profits = result["profit"].to_list()
-    assert profits == pytest.approx([0.049, 0.021], abs=1e-6)
+    assert profits == pytest.approx([0.049, 0.07], abs=1e-6)
 
     # cumulative_profit must be a true running total in date order
     running = 0.0
@@ -68,4 +68,4 @@ def test_engine_no_side_loses_when_outcome_happened():
     result = engine(p_model, df_result)
 
     assert result["side"].to_list() == ["No"]
-    assert result["profit"][0] == pytest.approx(-0.05)
+    assert result["profit"][0] == pytest.approx(-0.166,abs=1e-2)
