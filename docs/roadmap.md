@@ -121,7 +121,7 @@ Goal: end-to-end backtest, optional live execution.
 - `decisions_log.md` fully updated
 - `run_experiment.py` covers full pipeline — extended this session to run Phase 1 (scoring/calibration) and Phase 2/3 (edge → Kelly → backtest → risk) end-to-end in one script.
 
-**Definition of done:** Mostly there — reproducible, tested, documented end-to-end. Not fully "interview-ready in 10 minutes" yet, since notebook 07 itself is still a working scratchpad rather than a clean narrative.
+**Definition of done:** Reproducible, tested, and documented end-to-end — `python3 run_experiment.py` runs the full pipeline and `pytest tests/` passes. Open item: `notebook 07_Full_Backtest.ipynb` still has some scratch-work cells (duplicated imports, a couple of disabled exploratory cells) left over from active development, tracked as a follow-up narrative cleanup pass rather than a functional gap.
 
 ---
 

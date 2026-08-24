@@ -38,9 +38,9 @@ Format per entry:
 - **Reason:** Notebooks for research thinking, .py modules for production logic. This is how real quant teams work. Mixing them makes the repo look like a student project.
 - **Date:** 2026-06-28
 
-### Decision: Use polar insead of pandas
-- ** Polar should be used for dataset
-- ** Reason: ** Polar are much faster, slepless integration without copying. 
+### Decision: Use Polars instead of pandas
+- **Decision:** Polars should be used for the dataset.
+- **Reason:** Polars is much faster, with seamless integration and no unnecessary copying.
 - **Date:** 2026-06-29
 
 ### Decision: Add synthetic data fixtures for local development instead of hitting the real API every run
