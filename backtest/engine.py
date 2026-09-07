@@ -21,6 +21,7 @@ def engine(p_model,df_result):
 
     df_side= df_side.with_columns(pl.when(pl.col("side") == "Yes").then(pl.col("p_model")).otherwise(1- pl.col("p_model")).alias("model_side"))
     stake = kelly_criterion(df_side["model_side"],df_side["price_paid"])
+    df_side = df_side.with_columns(stake = pl.lit(stake))
     
     df_side = df_side.with_columns(pl.when(((pl.col("side") == "Yes") & (pl.col("win/loss flag") == 1))| ((pl.col("side") == "No") & (pl.col("win/loss flag") == 0))).then(stake * (1 / df_side["price_paid"] - 1) * (1 - settings.FEE_RATE)).otherwise(-stake).alias("profit"))
     df_side = df_side.sort("date")
