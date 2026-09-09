@@ -42,3 +42,23 @@ def test_expected_shortfall_averages_tail_beyond_var():
 
     tail_mean = df.filter(pl.col("profit") <= -var).select(pl.col("profit").mean()).item()
     assert es == pytest.approx(-tail_mean)
+
+
+def test_sharpe_ratio_matches_manual_calculation():
+    df = pl.DataFrame({"profit": [-0.5, -0.3, -0.1, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]})
+    sharpe = metrics.sharpe_ratio(df)
+
+    expected = df["profit"].mean() / df["profit"].std()
+    assert sharpe == pytest.approx(expected)
+
+
+def test_sharpe_ratio_raises_on_empty_profit():
+    df = pl.DataFrame({"profit": []}, schema={"profit": pl.Float64})
+    with pytest.raises(ValueError):
+        metrics.sharpe_ratio(df)
+
+
+def test_sharpe_ratio_raises_on_zero_std():
+    df = pl.DataFrame({"profit": [0.2, 0.2, 0.2]})
+    with pytest.raises(ValueError):
+        metrics.sharpe_ratio(df)
