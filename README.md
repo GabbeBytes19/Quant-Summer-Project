@@ -12,7 +12,7 @@ The goal is **probabilistic accuracy and risk adjusted decision quality**, not r
 4. **Prices the edge.** `edge = model_probability − market_probability`, filtered down to `effective_edge` after an assumed spread and Polymarket's platform fee.
 5. **Sizes positions.** Fractional Kelly criterion, based on each model's probability and the market's implied odds.
 6. **Backtests it.** Walk forward simulation of buying whichever side (Yes/No) the edge favors, only when the edge clears both a raw and a fee adjusted threshold.
-7. **Measures risk.** Value at Risk, Expected Shortfall, and running drawdown on the resulting P&L series.
+7. **Measures risk.** Value at Risk, Expected Shortfall, Sharpe ratio, and running drawdown on the resulting P&L series. Kelly sensitivity (f* vs. edge and vs. market odds) is explored separately in `notebooks/08_Risk_Analysis_Kelly.ipynb`.
 
 ## Module map
 
@@ -58,10 +58,9 @@ pytest tests/
 
 ## Known limitations
 
+- **No real bid/ask spread — the biggest open limitation.** Spread is a flat assumed constant (`spread = 0.05` in `pricing/edge.py:effective_edge()`), not real historical data, and this is a **permanent** decision, not a temporary gap. Polymarket's live order book API only covers currently open markets (every market here is already resolved). Options considered and ruled out are Dome API (real, but Polymarket acquired and shut it down in April 2026), PolymarketData.co (paid/tiered), Bitquery (wrong kind of data, trades, not order books, also paid), and pmxt (live only, no historical support). Full L2 order book history is expensive enough to store that every option either charges, expects self hosted chain indexing, or doesn't have the real bid/ask at all. See `docs/decisions_log.md`.
 - **Backtest results aren't perfectly reproducible run to run**, even at a matching total market count. Polymarket's dataset is live/unbounded and always growing, `settings.OOS_END` is defined as "yesterday" (shifts daily), and individual markets can update between runs, so treat specific numbers above as illustrative of the *pattern* (Bayesian wins on every axis), not as fixed values you should expect to reproduce exactly.
-- **Spread is a flat assumed constant** (`spread = 0.05` in `pricing/edge.py:effective_edge()`), not real historical data, and this is a **permanent** decision, not a temporary gap. Polymarket's live order book API only covers currently open markets (every market here is already resolved). Options considered and ruled out are Dome API (real, but Polymarket acquired and shut it down in April 2026), PolymarketData.co (paid/tiered), Bitquery (wrong kind of data, trades, not order books, also paid), and pmxt (live only, no historical support). Full L2 order book history is expensive enough to store that every option either charges, expects self hosted chain indexing, or doesn't have the real bid/ask at all. See `docs/decisions_log.md`.
 - **IS/OOS results aren't reported *separately*** in the backtest (one combined result per model). Tracked as an open item.
-- Sharpe ratio is computed per model (`risk/metrics.py:sharpe_ratio`) and printed via `backtest/pnl.py:get_pnl()`. Kelly sensitivity (f* vs. edge and vs. market odds, plus a combined heatmap) is covered in `notebooks/08_Risk_Analysis_Kelly.ipynb`.
 - A live "what should I bet on today" recommendation loop (reusing this same pipeline against currently open markets instead of resolved ones) is sketched but not yet built. See `docs/roadmap.md`, Week 10.
 
 See `docs/decisions_log.md` and `docs/roadmap.md` for the full history and current status of every module.
