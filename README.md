@@ -4,6 +4,10 @@ A probabilistic decision making and pricing research platform, not a trading bot
 
 The goal is **probabilistic accuracy and risk adjusted decision quality**, not raw P&L. Every result in this repo should be read with that in mind.
 
+<img src="docs/images/08_kelly_heatmap.png" width="560" alt="Fractional Kelly stake across model probability and market odds">
+
+*Fractional Kelly stake f\* across the observed range of model probability and market odds. Blue is a Yes bet, red is a No bet, the dashed line is zero edge. From `notebooks/08_Risk_Analysis_Kelly.ipynb`.*
+
 ## What it does
 
 1. **Ingests data.** Historical + forecast temperature data (Open-Meteo) and resolved prediction market data (Polymarket).
@@ -13,6 +17,34 @@ The goal is **probabilistic accuracy and risk adjusted decision quality**, not r
 5. **Sizes positions.** Fractional Kelly criterion, based on each model's probability and the market's implied odds.
 6. **Backtests it.** Walk forward simulation of buying whichever side (Yes/No) the edge favors, only when the edge clears both a raw and a fee adjusted threshold.
 7. **Measures risk.** Value at Risk, Expected Shortfall, Sharpe ratio, and running drawdown on the resulting P&L series. Kelly sensitivity (f* vs. edge and vs. market odds) is explored separately in `notebooks/08_Risk_Analysis_Kelly.ipynb`.
+
+## Pipeline in pictures
+
+One plot per stage, taken straight from the notebooks.
+
+<img src="docs/images/01_daily_max_timeseries.png" width="900" alt="Daily max temperature in Hong Kong 2021 to 2026">
+
+*Daily max temperature in Hong Kong, 2021 to 2026 (Open-Meteo). The summer plateau around 29 to 33°C is the range every Polymarket bucket lives in. `notebooks/01_data_exploration.ipynb`*
+
+<img src="docs/images/02_summer_histogram_gaussian_fit.png" width="560" alt="Summer daily max histogram with Gaussian fit">
+
+*June to August daily maxima with the Gaussian baseline fitted on top. This is the climatology every model starts from. `notebooks/02_Baseline_Model.ipynb`*
+
+<img src="docs/images/04_prior_likelihood_posterior.png" width="480" alt="Prior, likelihood and posterior for one day">
+
+*The Bayesian update for one day. The climatological prior (red) is narrowed by that day's forecast (blue) into the posterior (green) that gets priced. `notebooks/04_Bayesian_Inference.ipynb`*
+
+<img src="docs/images/05_model_comparison_buckets.png" width="480" alt="Gaussian, KDE and Bayesian bucket probabilities side by side">
+
+*All three models' bucket probabilities for the same day. The Bayesian model concentrates mass where the climatology only models spread it out. `notebooks/05_Model_Comparison.ipynb`*
+
+<img src="docs/images/06_calibration_bayesian.png" width="520" alt="Bayesian calibration, predicted vs observed per probability bucket">
+
+*Bayesian calibration on out of sample data. Predicted probability per bucket against the realised frequency. `notebooks/06_Calibration_Analysis.ipynb`*
+
+<img src="docs/images/07_edge_distribution.png" width="900" alt="Edge distribution per model">
+
+*Distribution of edge (model probability minus market price) per model across every resolved market. Gaussian and KDE pile up at zero, Bayesian carries a fatter positive tail. `notebooks/07_Full_Backtest.ipynb`*
 
 ## Module map
 
@@ -60,7 +92,7 @@ pytest tests/
 
 - **No real bid/ask spread — the biggest open limitation.** Spread is a flat assumed constant (`spread = 0.05` in `pricing/edge.py:effective_edge()`), not real historical data, and this is a **permanent** decision, not a temporary gap. Polymarket's live order book API only covers currently open markets (every market here is already resolved). Options considered and ruled out are Dome API (real, but Polymarket acquired and shut it down in April 2026), PolymarketData.co (paid/tiered), Bitquery (wrong kind of data, trades, not order books, also paid), and pmxt (live only, no historical support). Full L2 order book history is expensive enough to store that every option either charges, expects self hosted chain indexing, or doesn't have the real bid/ask at all. See `docs/decisions_log.md`.
 - **Backtest results aren't perfectly reproducible run to run**, even at a matching total market count. Polymarket's dataset is live/unbounded and always growing, `settings.OOS_END` is defined as "yesterday" (shifts daily), and individual markets can update between runs, so treat specific numbers above as illustrative of the *pattern* (Bayesian wins on every axis), not as fixed values you should expect to reproduce exactly.
-- **IS/OOS results aren't reported *separately*** in the backtest (one combined result per model). Tracked as an open item.
+- **The IS/OOS split only applies to the probability models, not the backtest.** `IS_START`/`IS_END` (2000–2016) is used solely to fit the climatology in Phase 1; every backtested trade comes from Polymarket market data, which only exists within the OOS window by construction, so there's no in-sample slice of trades to separate out in Phase 3.
 - A live "what should I bet on today" recommendation loop (reusing this same pipeline against currently open markets instead of resolved ones) is sketched but not yet built. See `docs/roadmap.md`, Week 10.
 
 See `docs/decisions_log.md` and `docs/roadmap.md` for the full history and current status of every module.

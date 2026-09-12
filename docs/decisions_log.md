@@ -167,3 +167,7 @@ Format per entry:
   - IS/OOS results are not currently reported *separately* in the backtest (one combined result per model).
   - No Sharpe ratio, and no dedicated Kelly sensitivity notebook (`08_Risk_Analysis_Kelly.ipynb` still empty).
 - **Date:** 2026-08-11
+
+### Correction (2026-09-11): Sharpe ratio, Kelly sensitivity, and the IS/OOS item above
+- Sharpe ratio is now implemented (`risk/metrics.py:sharpe_ratio`, printed via `backtest/pnl.py:get_pnl()`), and `notebooks/08_Risk_Analysis_Kelly.ipynb` now covers the Kelly sensitivity analysis (f* vs. edge, f* vs. market odds, plus a combined heatmap). Both items above are closed.
+- The "IS/OOS not reported separately in the backtest" item above was miscarried over from the Phase 1 evaluation split and doesn't actually apply to Phase 3. `IS_START`/`IS_END` only feeds the Phase 1 climatology fit; `build_polymarket_price_dataset()` pulls Polymarket market data with no lower date bound, and Polymarket itself only has history within the OOS window, so every backtested trade is already out-of-sample by construction. There is no in-sample slice of trades in the backtest to split out.

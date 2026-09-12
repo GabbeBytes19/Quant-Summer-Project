@@ -9,8 +9,8 @@ The goal is a working, calibrated probability model. No Polymarket yet.
 **Deliverables:**
 - All folders and files scaffolded
 - `config/settings.py` holds coordinates, date ranges, and the event threshold
-- `config/config.yaml` holds environment config
-- [ ] `.gitignore` with `.env` is still missing. The current `.gitignore` only has `.vscode/`, `__pycache__/`, `.ipynb_checkpoints/`, no `.env` entry. This isn't currently a live risk, since no API keys are needed anywhere in this project (Open-Meteo and Polymarket are both keyless), but it's worth adding defensively before that ever changes.
+- `config/config.yaml` was scaffolded here but nothing reads it, all real settings live in `config/settings.py` (see Week 10 cleanup)
+- `.gitignore` covers `.env`, `__pycache__/`, `.ipynb_checkpoints/`, `.vscode/`, and `.DS_Store`. No API keys are needed anywhere in this project (Open-Meteo and Polymarket are both keyless), the `.env` entry is defensive.
 - `requirements.txt` installed in virtual environment
 - `data/fetcher.py` pulls historical temperature data from Open-Meteo
 - `data/cleaner.py` handles basic missing values
@@ -60,8 +60,8 @@ The goal is a working, calibrated probability model. No Polymarket yet.
 ### Week 5, Consolidation + run_experiment.py
 **Deliverables:**
 - `run_experiment.py` runs the full Phase 1 pipeline end to end from config (now runs Phase 2/3 too, see Week 9)
-- All Phase 1 tests passing (`pytest tests/`)
-- [ ] Notebooks clean and readable. True for `01`–`06` as far as verified. `07_Full_Backtest.ipynb` specifically still has commented out exploratory cells (see Week 9).
+- All Phase 1 tests passing (`python3 -m pytest tests/`, see Week 9 for why the `-m` form)
+- Notebooks clean and readable. `07_Full_Backtest.ipynb` was cleaned up on 2026-09-11 (one import cell, dead cells removed, all text in English).
 - Phase 1 summary in `decisions_log.md`
 
 **Definition of done:** Someone clones the repo, runs `python3 run_experiment.py`, and gets calibration results (and now the full Phase 2/3 backtest/risk results too).
@@ -91,9 +91,9 @@ The goal is to bring in Polymarket, detect mispricing, and size positions.
 - Transaction costs are wired in. `config/settings.py` → `FEE_RATE` is deducted from realized P&L in `backtest/engine.py`. Spread is not, it only gates eligibility via `effective_edge_flag` and is never subtracted from a trade's realized payoff. See `decisions_log.md` for why (spread has no real per market data source, and realized P&L only ever deducts the platform fee).
 - `pricing/edge.py` computes both gross edge and effective_edge (after spread + fees)
 - `tests/test_kelly.py` checks that f* stays bounded for extreme inputs, that its sign matches the model vs market direction, and that fractional scaling is applied. Note that "never < 0" from the original plan is no longer the right constraint. See `decisions_log.md`, Kelly is deliberately two sided now, negative f* signals betting the No side, not "don't bet."
-- [ ] `notebooks/08_Risk_Analysis_Kelly.ipynb`, Kelly sizing plus sensitivity analysis, is not built yet. Kelly/risk numbers currently only surface via `backtest/pnl.py:get_pnl()`'s printed summary, not a dedicated notebook. Still open.
+- `notebooks/08_Risk_Analysis_Kelly.ipynb` covers Kelly sizing plus the sensitivity analysis, f* vs. edge at fixed market odds, f* vs. market odds at fixed model probability, and a combined heatmap over the observed range of both.
 
-**Definition of done:** Given an edge and spread, system computes effective_edge and only sizes a position when effective_edge_flag clears both thresholds. The "show how f* changes with edge and odds" sensitivity analysis half is not done.
+**Definition of done:** Given an edge and spread, system computes effective_edge and only sizes a position when effective_edge_flag clears both thresholds, and notebook 08 shows how f* changes with edge and odds. Done. One known bug in the filter itself is tracked in Week 10 (the sign asymmetry in `effective_edge`).
 
 ---
 
@@ -104,12 +104,12 @@ The goal is an end to end backtest, with optional live execution.
 
 ### Week 8, Backtest Engine
 **Deliverables:**
-- `backtest/engine.py` has a walk forward loop that's built and tested. The IS/OOS boundary is enforced upstream (via `settings.OOS_START`/`OOS_END` bounding what data reaches the engine), not as an explicit check inside `engine()` itself.
-- `backtest/pnl.py` handles P&L tracking with transaction costs (fee only, see Week 7 note) and max drawdown via `run_all_models`/`get_pnl`. No Sharpe ratio yet, that's not built.
-- `notebooks/07_Full_Backtest.ipynb` has the full backtest pipeline built and run here. IS/OOS periods are not explicitly labeled on plots.
+- `backtest/engine.py` has a walk forward loop that's built and tested. There is no IS/OOS check inside `engine()`. The models are fit on `IS_START` to `IS_END` weather data, and every trade the engine sees comes from Polymarket, whose history only exists inside the OOS window, so the trade dates are out of sample by default. The Bayesian likelihood fit is the exception, see Week 10.
+- `backtest/pnl.py` handles P&L tracking with transaction costs (fee only, see Week 7 note), max drawdown, and Sharpe ratio via `run_all_models`/`get_pnl`. Sharpe is `mean(profit) / std(profit)` over per trade rows, not annualised, so it is a per bet ratio rather than a conventional Sharpe.
+- `notebooks/07_Full_Backtest.ipynb` has the full backtest pipeline built and run here.
 - Polymarket data constraint documented in `docs/data_sources.md`.
 
-**Definition of done:** System simulates historical decisions and produces a P&L series (`profit`/`cumulative_profit`) with VaR/Expected Shortfall/max drawdown, per model, side by side. IS/OOS results are not reported separately. The backtest currently reports one combined result per model, not split by IS/OOS.
+**Definition of done:** System simulates historical decisions and produces a P&L series (`profit`/`cumulative_profit`) with VaR/Expected Shortfall/max drawdown/Sharpe, per model, side by side. Done. The result is one combined number per model over the whole Polymarket date range, a time split within that range (early vs. late) has not been done.
 
 ---
 
@@ -129,7 +129,7 @@ The goal is an end to end backtest, with optional live execution.
 For anything that slipped, extra experimentation, or extending models.
 
 - [ ] **Live "what to bet on today" recommendation loop.** Reuse the existing model probability + edge/effective_edge/Kelly pipeline, but point it at currently open Polymarket markets (`closed == False`) instead of resolved ones, comparing today's model probability against today's live price. No ground truth/win loss step is needed (the outcome isn't known yet). Wrap it in a simple `while True: run(); time.sleep(N)` loop living in `execution/loop.py` (previously empty), no server/cloud hosting, just a long running local process. The interval should stay conservative (15-30 min) given this session's repeated experience with both Polymarket and Open-Meteo rate limits under rapid repeated requests.
-- [ ] Sharpe ratio in `backtest/pnl.py`
-- [ ] `notebooks/08_Risk_Analysis_Kelly.ipynb`, Kelly sensitivity analysis (f* vs. edge, f* vs. odds)
+- [x] Sharpe ratio in `backtest/pnl.py` — done, see `risk/metrics.py:sharpe_ratio`.
+- [x] `notebooks/08_Risk_Analysis_Kelly.ipynb`, Kelly sensitivity analysis (f* vs. edge, f* vs. odds) — done.
 - [ ] Real per market spread, if a viable source ever appears. See `decisions_log.md`, this is currently a settled, permanent flat assumption decision, not an open search.
-- [ ] IS/OOS split reported separately in the backtest (currently one combined result per model)
+- [x] ~~IS/OOS split reported separately in the backtest~~ — not applicable. `IS_START`/`IS_END` only feeds the Phase 1 climatology fit; every backtested trade comes from Polymarket data, which only exists within the OOS window by construction. There's no in-sample slice of trades to split out. See `decisions_log.md` correction, 2026-09-11.
