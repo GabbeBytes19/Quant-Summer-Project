@@ -1,5 +1,6 @@
 import polars as pl
 
+from config import settings
 from pricing import fair_value
 from evaluation import eval_loop
 
@@ -18,7 +19,9 @@ def test_get_bucket_polymarket_handles_open_ended_buckets():
     assert predicted[2] is None  # "higher" market has no fixed-bucket index
 
 
-def test_run_eval_loop_polymarket_matches_ground_truth_by_date_not_row_position():
+def test_run_eval_loop_polymarket_matches_ground_truth_by_date_not_row_position(monkeypatch):
+    # two row ground truth, so the forecast history requirement must be switched off for this test
+    monkeypatch.setattr(settings, "MIN_FORECAST_HISTORY", 0)
     buckets = fair_value.create_buckets(20, 32)
 
     # df_pair (ground truth) rows deliberately in a different order than df_result,
