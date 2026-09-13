@@ -170,4 +170,31 @@ Format per entry:
 
 ### Correction (2026-09-11): Sharpe ratio, Kelly sensitivity, and the IS/OOS item above
 - Sharpe ratio is now implemented (`risk/metrics.py:sharpe_ratio`, printed via `backtest/pnl.py:get_pnl()`), and `notebooks/08_Risk_Analysis_Kelly.ipynb` now covers the Kelly sensitivity analysis (f* vs. edge, f* vs. market odds, plus a combined heatmap). Both items above are closed.
-- The "IS/OOS not reported separately in the backtest" item above was miscarried over from the Phase 1 evaluation split and doesn't actually apply to Phase 3. `IS_START`/`IS_END` only feeds the Phase 1 climatology fit; `build_polymarket_price_dataset()` pulls Polymarket market data with no lower date bound, and Polymarket itself only has history within the OOS window, so every backtested trade is already out-of-sample by construction. There is no in-sample slice of trades in the backtest to split out.
+- The "IS/OOS not reported separately in the backtest" item above pointed at something real, but not what the wording said. Every Polymarket market falls inside the OOS window, so there was never an in sample slice of trades to split out. What the item should have said is that the Bayesian likelihood was fit on all of `df_pair`, including the scored day and later days. See the 2026-09-13 entry below for the fix.
+
+---
+
+## Review fixes and rerun (2026-09-13)
+
+A full code review on 2026-09-12 surfaced a set of bugs. All were reproduced with tests first (`tests/test_regressions.py`), then fixed.
+
+- **Bayesian look ahead.** `bayesian_interference` called `compute_forecast_error(df_pair)` on the entire paired dataset for every day, so the forecast bias and sigma for day t included day t's own outcome and every later day. Fix in `models/bayesian_model.py`, the error statistics now come from `df_pair.filter(pl.col("date") < day)`, an expanding window of earlier days only. `config/settings.py:MIN_FORECAST_HISTORY = 30` sets the warmup, and both eval loops in `evaluation/eval_loop.py` skip the first 30 rows of `df_pair` for every model so Gaussian, KDE, and Bayesian are scored on identical days.
+- **`effective_edge` sign asymmetry.** `pricing/edge.py` subtracted spread/2 and the fee from the signed edge and then took `abs()`, so a No side edge of -0.06 became -0.105 and passed while a Yes side edge of +0.06 became 0.015 and failed. Costs are now applied to `abs(edge)` with the sign restored. Trade counts across models moved to within four of each other after the fix (644 to 648).
+- **Unknown outcomes booked as No wins.** In `run_eval_loop_polymarket` the win/loss flag was `otherwise(0)`, so an open ended market or a day without ground truth counted as a loss for Yes and a win for No. The flag is now null in those cases and `backtest/engine.py` drops null flag rows before sizing.
+- **Forecast fetch ignored its arguments.** `fetch_previous_forecast_data` hardcoded `past_days=1900` and no timezone. It now sends `start_date`, `end_date`, and `timezone=settings.TIMEZONE`. Open-Meteo returns nulls for dates before its previous runs coverage (mid 2021), which `pair_dataframes` already drops, so the effective data range is unchanged but now follows `OOS_START` and aligns forecast days to Hong Kong local time like the actuals.
+- **Null gap rule.** `clean_data` counted rows dropped after interpolation, which only ever counted leading or trailing nulls. It now rejects the dataset if the total null count exceeds `MAX_NULL_GAP` before interpolating.
+- **Double fetch.** `run_experiment()` called `fetch_all_data()` and discarded the result before `run_system()` fetched again. Removed.
+
+**Rerun results (2026-09-13, 1,976 resolved markets).**
+
+| Model | Brier | Log loss | Profit | VaR | ES | Max DD | Sharpe (per trade) | Trades |
+|---|---|---|---|---|---|---|---|---|
+| Gaussian | 0.902 | 2.441 | 45.2 | 0.168 | 0.219 | 2.13 | 0.102 | 644 |
+| KDE | 0.902 | 2.383 | 45.5 | 0.166 | 0.216 | 1.77 | 0.102 | 648 |
+| Bayesian | 0.740 | 1.523 | 113.5 | 0.100 | 0.160 | 1.15 | 0.129 | 644 |
+
+Skill scores over Gaussian, Bayesian 0.180 (Brier) and 0.376 (log loss). KDE vs. Gaussian 0.000 (Brier) and 0.024 (log loss).
+
+- **Why Bayesian improved after removing the leak** (Brier 0.765 to 0.740, log loss 1.598 to 1.523, with Gaussian and KDE unchanged). The old code applied one bias averaged over 2021 to 2026 to every day. The forecast bias is not constant over that period, so early days were corrected with a number dominated by later years. The expanding window uses only what was known at the time and tracks the drift. Gaussian and KDE do not use the forecast, so they were unaffected by both the leak and the fix.
+- **Calibration.** Bayesian predicted vs. observed by bucket, 0.011/0.018, 0.146/0.170, 0.249/0.246, 0.356/0.300, 0.418/0.399. Gaussian and KDE remain overconfident in their top bucket (0.242 predicted vs. 0.164 observed).
+- **Date:** 2026-09-13
