@@ -1,10 +1,8 @@
 from config import settings
-import numpy as np
 import polars as pl
 
 from numpy.lib.stride_tricks import as_strided
 
-import pandas as pd
 import matplotlib.pyplot as plt
 
 def value_at_risk(df):

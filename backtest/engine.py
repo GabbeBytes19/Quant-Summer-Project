@@ -12,6 +12,7 @@ def engine(p_model,df_result):
     df_effective_edge = effective_edge(edge)
 
     df_effective_edge = df_effective_edge.filter(pl.col("effective_edge_flag") == True)
+    df_effective_edge = df_effective_edge.filter(pl.col("win/loss flag").is_not_null())
 
     df_side = df_effective_edge.with_columns(pl.when(pl.col("edge") > 0).then(pl.lit("Yes")).otherwise(pl.lit("No")).alias("side"))
 

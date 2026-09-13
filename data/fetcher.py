@@ -58,9 +58,10 @@ def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame
     items = {
         "latitude": settings.LATITUDE,
         "longitude": settings.LONGITUDE,
+        "timezone": settings.TIMEZONE,
         "hourly": "temperature_2m_previous_day1,temperature_2m_previous_day2,temperature_2m_previous_day3,temperature_2m_previous_day4,temperature_2m_previous_day5",
-        "past_days": "1900",
-        "forecast_days": "1",
+        "start_date": start_date,
+        "end_date": end_date,
     }
     url = "https://previous-runs-api.open-meteo.com/v1/forecast"
     try:
@@ -74,62 +75,6 @@ def fetch_previous_forecast_data(start_date: str, end_date: str) -> pl.DataFrame
     except Exception as e:
         raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
-"""
-def parse_date_function_helper():
-    list_of_dates = []
-    month_converter = {1:'january',
-		2:'february',
-		3:'march',
-		4:'april',
-		5:'may',
-		6:'june',
-		7:'july',
-		8:'august',
-		9:'september',
-		10:'october',
-		11:'november',
-		12:'december'		}
-    from datetime import datetime,timedelta
-    start_date_str = settings.POLYMARKET_START 
-    end_date_str = settings.POLYMARKET_END 
-    # Source - https://stackoverflow.com/a/1060330
-    # Posted by Ber, modified by community. See post 'Timeline' for change history
-    # Retrieved 7/27/2026, License - CC BY-SA 4.0
-    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-    end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-    day_count = int((end_date - start_date).days)
-    for single_date in (start_date + timedelta(n) for n in range(day_count +1 )):
-        #print(single_date) # Gives us all the dates!
-        year = single_date.year
-        month_str = single_date.month
-        month = month_converter[single_date.month]
-        day = single_date.day
-        list_of_dates.append((month,month_str,day,year))
-    return list_of_dates
-   
-
-def fetch_polymarket_data():
-    lst = parse_date_function_helper()
-    all_days = []
-    url = "https://gamma-api.polymarket.com/events"
-    for month,month_str, day, year in lst:
-        items = {"slug": f"highest-temperature-in-hong-kong-on-{month}-{day}-{year}"}
-        try:
-            response = requests.get(url, params=items, timeout=120)
-            response.raise_for_status()
-            data = response.json()
-        except Exception as e:
-            raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
-
-        if not data or "markets" not in data[0]:
-            continue
-        
-        df_day = pl.DataFrame(data, strict=False).explode("markets").with_columns(pl.lit(f"{year}-{month_str:02d}-{day:02d}").alias("date"))
-        all_days.append(df_day)
-
-    return pl.concat(all_days,how="diagonal_relaxed")
-
-"""
 
 def fetch_polymarket_data():
     url = "https://gamma-api.polymarket.com/events"
@@ -197,36 +142,6 @@ def fetch_polymarket_price_history(clob_token_id,date):
     except Exception as e:
         raise ValueError(f"Error fetching data from {url} with params {items}: {e}")
 
-
-def get_spread_polymarket():
-    #Source : https://docs.polymarket.com/api-reference/market-data/get-spread
-
-
-    #df_list = df_result["yes_token_id"].to_list()
-    #token_id = df_list[0]
-    token_id = '100219190591120160966457091003186951399728474447451634780784282957470581045794' 
-    dt_start = datetime.strptime("2026-05-30", "%Y-%m-%d")
-    dt_end = datetime.strptime("2026-05-31", "%Y-%m-%d")
-    milliseconds_start = int(dt_start.timestamp() * 1000)
-    milliseconds_end = int(dt_end.timestamp() * 1000)
-    items = {
-            "token_id" : token_id,
-            "start_time": milliseconds_start,
-            "end_time": milliseconds_end,
-    }
-    #url = "https://clob.polymarket.com/spread"
-    url = "https://api.domeapi.io/v1/polymarket/orderbooks"
-    try:
-        data_json = requests.get(url, params=items, timeout=120)
-        print(data_json)
-        data = data_json.json()
-        print(data)
-        if "error" in data:
-            raise ValueError(data["error"])
-        #df_polymarket_history= pl.DataFrame(data["history"])
-    except ValueError:
-        print(f"Error fetching data from {url} with params {items}")
-    return data
 
         
 

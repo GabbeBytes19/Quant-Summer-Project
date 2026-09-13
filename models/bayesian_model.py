@@ -3,6 +3,7 @@ from data import fetcher
 from config import settings
 from models.baseline import gaussian_probability
 import numpy as np
+import polars as pl
 
 
 def bayesian_interference(df_summer,day,df_pair):
@@ -10,7 +11,8 @@ def bayesian_interference(df_summer,day,df_pair):
     true_my = np.mean(df_summer)
     #Likelihood
     forecast_value = fetcher.get_specific_day(day,df_pair)
-    _,mean_error,sigma_forecast= fetcher.compute_forecast_error(df_pair)
+    # bias and sigma only from days strictly before the scored day, otherwise the day's own outcome leaks in
+    _,mean_error,sigma_forecast= fetcher.compute_forecast_error(df_pair.filter(pl.col("date") < day))
     _,my_prior,sigma_prior = gaussian_probability(df_summer,settings.LOWER_BOUND,settings.UPPER_BOUND)
 
     likelihood_mean = forecast_value - mean_error

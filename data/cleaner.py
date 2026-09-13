@@ -3,22 +3,18 @@ import polars as pl
 
 def clean_data(df):
     # If the data is not correct format or are missing values , we need to clean the data and return a clean dataframe
-    # If its less than 5 nulls in a row --> interpolate , else --> discard the data
-    orignal_length = len(df)
-    if df[
-        "time", "temperature_2m_max", "temperature_2m_min", "precipitation_sum"
-    ].is_empty():
+    # If there are more than MAX_NULL_GAP nulls in total --> discard the data, else --> interpolate
+    columns = ["time", "temperature_2m_max", "temperature_2m_min", "precipitation_sum"]
+    if df[columns].is_empty():
         return None
 
-    if (
-        df["time", "temperature_2m_max", "temperature_2m_min", "precipitation_sum"]
-        .null_count().pipe(sum).item() > 0
-    ):
+    null_count = df[columns].null_count().pipe(sum).item()
+    if null_count > settings.MAX_NULL_GAP:
+        return None
+
+    if null_count > 0:
         df = df.interpolate()
         df = df.drop_nulls()
-
-    if orignal_length - len(df) > settings.MAX_NULL_GAP:
-        return None
 
     return df
 

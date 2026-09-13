@@ -22,6 +22,7 @@ IS_START = "2000-01-01" #In sample, data we have used to build the model
 IS_END = "2016-12-31"
 OOS_START = "2017-01-01" #Out sample, data the model never has seen
 OOS_END = (datetime.now() -timedelta(days=1)).strftime('%Y-%m-%d')
+MIN_FORECAST_HISTORY = 30  # Days of paired forecast/actual data required before a date is scored, so the forecast bias and sigma are estimated from earlier days only
 USE_SYNTHECTIC_DATA = False #If you dont want to use real data with API calls, test data with Synthectic data,
 POLYMARKET_START = "2026-01-01" ## Polymarket data only reliable from ~2024
 POLYMARKET_END = "2026-04-28"

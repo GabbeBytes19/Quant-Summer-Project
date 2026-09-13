@@ -144,8 +144,7 @@ def run_system():
 
 
 def run_experiment():
-    print("Fetching wheather data...")
-    fetch_all_data()
+    print("Fetching weather data...")
     run_system()
 
 

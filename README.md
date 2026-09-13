@@ -79,8 +79,10 @@ The same pipeline is also explorable step by step in `notebooks/07_Full_Backtest
 **Tests:**
 
 ```bash
-pytest tests/
+PYTHONPATH=. pytest tests/
 ```
+
+The repo root has to be on the Python path so the tests can import the project modules, hence the `PYTHONPATH=.` prefix.
 
 ## Results summary (illustrative, see limitations on reproducibility)
 

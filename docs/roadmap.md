@@ -60,7 +60,7 @@ The goal is a working, calibrated probability model. No Polymarket yet.
 ### Week 5, Consolidation + run_experiment.py
 **Deliverables:**
 - `run_experiment.py` runs the full Phase 1 pipeline end to end from config (now runs Phase 2/3 too, see Week 9)
-- All Phase 1 tests passing (`python3 -m pytest tests/`, see Week 9 for why the `-m` form)
+- All Phase 1 tests passing (`PYTHONPATH=. pytest tests/`)
 - Notebooks clean and readable. `07_Full_Backtest.ipynb` was cleaned up on 2026-09-11 (one import cell, dead cells removed, all text in English).
 - Phase 1 summary in `decisions_log.md`
 
@@ -117,11 +117,11 @@ The goal is an end to end backtest, with optional live execution.
 **Deliverables:**
 - `README.md` updated with project description, how to run, and results summary
 - All notebooks narratively complete. `07_Full_Backtest.ipynb` still has commented out exploratory cells, so it's not yet a clean, readable research report.
-- All tests passing (`pytest tests/`, 37 passed)
+- All tests passing (`PYTHONPATH=. pytest tests/`, 40 passed)
 - `decisions_log.md` fully updated
 - `run_experiment.py` covers the full pipeline, extended this session to run Phase 1 (scoring/calibration) and Phase 2/3 (edge → Kelly → backtest → risk) end to end in one script.
 
-**Definition of done:** Reproducible, tested, and documented end to end. `python3 run_experiment.py` runs the full pipeline and `pytest tests/` passes. One open item is that `notebook 07_Full_Backtest.ipynb` still has some scratch work cells (duplicated imports, a couple of disabled exploratory cells) left over from active development, tracked as a follow up narrative cleanup pass rather than a functional gap.
+**Definition of done:** Reproducible, tested, and documented end to end. `python3 run_experiment.py` runs the full pipeline and `PYTHONPATH=. pytest tests/` passes. One open item is that `notebook 07_Full_Backtest.ipynb` still has some scratch work cells (duplicated imports, a couple of disabled exploratory cells) left over from active development, tracked as a follow up narrative cleanup pass rather than a functional gap.
 
 ---
 
