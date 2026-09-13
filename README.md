@@ -53,7 +53,7 @@ One plot per stage, taken straight from the notebooks.
 | `data/` | Fetch, clean, and align weather + Polymarket data |
 | `models/` | Gaussian baseline, KDE, Bayesian probability estimators |
 | `pricing/` | `fair_value.py` (buckets, probability vectors), `edge.py` (model vs. market edge) |
-| `risk/` | `kelly.py` (position sizing), `metrics.py` (VaR, Expected Shortfall, drawdown) |
+| `risk/` | `kelly.py` (position sizing), `metrics.py` (VaR, Expected Shortfall, drawdown, Sharpe) |
 | `backtest/` | `engine.py` (per model walk forward simulation) |
 | `evaluation/` | `scoring.py`, `calibration.py`, `eval_loop.py` (ground truth matching) |
 | `notebooks/` | All exploration, math, and plots. See `notebooks/07_Full_Backtest.ipynb` for the end to end pipeline |

@@ -8,9 +8,9 @@ import time
 
 
 def test_sigma_posterior_raise(monkeypatch):
-    #monkeypatch.setattr(fetcher, "fetch_data", lambda *args, **kwargs: synthetic_actual_df())
-    #monkeypatch.setattr(fetcher,"fetch_previous_forecast_data",lambda *args, **kwargs: synthetic_previous_df())
-    #monkeypatch.setattr(fetcher,"get_tommorows_wheather",lambda * args,**kwargs: 30)
+    monkeypatch.setattr(fetcher, "fetch_data", lambda *args, **kwargs: synthetic_actual_df())
+    monkeypatch.setattr(fetcher,"fetch_previous_forecast_data",lambda *args, **kwargs: synthetic_previous_df())
+    monkeypatch.setattr(fetcher,"get_tommorows_wheather",lambda * args,**kwargs: 30)
     df_raw = fetcher.fetch_data(settings.HISTORICAL_START,settings.HISTORICAL_END)
     df_clean = cleaner.clean_data(df_raw)
     df_event = loader.add_event_column(df_clean)

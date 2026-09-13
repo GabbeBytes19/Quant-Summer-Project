@@ -116,7 +116,7 @@ The goal is an end to end backtest, with optional live execution.
 ### Week 9, Polish + Documentation
 **Deliverables:**
 - `README.md` updated with project description, how to run, and results summary
-- All notebooks narratively complete. `07_Full_Backtest.ipynb` still has commented out exploratory cells, so it's not yet a clean, readable research report.
+- All notebooks narratively complete. `07_Full_Backtest.ipynb` was cleaned up on 2026-09-11 (one import cell, dead cells removed, all text in English), and all eight notebooks were rerun and saved with outputs on 2026-09-12.
 - All tests passing (`PYTHONPATH=. pytest tests/`, 40 passed)
 - `decisions_log.md` fully updated
 - `run_experiment.py` covers the full pipeline, extended this session to run Phase 1 (scoring/calibration) and Phase 2/3 (edge → Kelly → backtest → risk) end to end in one script.

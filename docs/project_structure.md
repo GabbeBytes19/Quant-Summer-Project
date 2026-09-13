@@ -69,7 +69,6 @@ Quant-Summer-Project/
 │   └── 08_Risk_Analysis_Kelly.ipynb    # Phase 2, Kelly sizing, drawdown analysis
 │
 ├── run_experiment.py       # top level reproducibility script, runs full pipeline
-├── .env                    # API keys (gitignored)
 ├── .gitignore
 └── requirements.txt
 ```
@@ -88,7 +87,6 @@ scikit-learn
 statsmodels
 pytest
 pyyaml
-python-dotenv
 ```
 
 ## Phase build order

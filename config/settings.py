@@ -13,7 +13,7 @@ MIN_EFFECTIVE_EDGE = 0.02  # minimum edge after spread + fees, the edge minus sp
 FRACTIONAL_KELLY = 0.25  # κ take edge/net deciaml odds and multiply by this fraction to get the bet size, 0.25 is a conservative approach to reduce risk of ruin
 ALPHA = 0.05  # α for VaR, the probability of loss exceeding the VaR threshold, 5% is a common choice for risk management
 FEE_RATE = 0.02  # Polymarket platform fee (~2%), fee rate on polymarket
-MAX_NULL_GAP = 5  # Maximum number of consecutive null values allowed in the data before discarding the data, if there are more than this number of consecutive nulls, discard the data
+MAX_NULL_GAP = 5  # Maximum total number of null values allowed in the data, if there are more than this many nulls the dataset is discarded, otherwise they are interpolated
 TOMMORROWS_DATE = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
 LOWER_BOUND = 25  # Lower bound for the probability of the event, if the probability is below this threshold, consider it as a no-even
 UPPER_BOUND= 36  # Upper bound for the probability of the event, if the probability is above this threshold, consider it as a yes-event
