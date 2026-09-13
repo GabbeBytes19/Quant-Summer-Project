@@ -30,6 +30,18 @@ def test_effective_edge_flag_requires_both_thresholds():
     assert result["effective_edge_flag"].to_list() == [False, False, True]
 
 
+def test_effective_edge_reads_spread_from_settings(monkeypatch):
+    df = pl.DataFrame({"edge": [0.10]})
+
+    monkeypatch.setattr(settings, "ASSUMED_SPREAD", 0.0)
+    no_spread = edge.effective_edge(df)["effective_edge"][0]
+
+    monkeypatch.setattr(settings, "ASSUMED_SPREAD", 0.04)
+    with_spread = edge.effective_edge(df)["effective_edge"][0]
+
+    assert no_spread - with_spread == pytest.approx(0.02)
+
+
 def test_effective_edge_preserves_raw_edge_column():
     df = pl.DataFrame({"edge": [0.1, -0.2]})
     result = edge.effective_edge(df)

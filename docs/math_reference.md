@@ -12,7 +12,7 @@ P(a < X ≤ b) = ∫_a^b f(x) dx
 ```
 In practice, `CDF(b) - CDF(a)` is used for parametric models, and numerical integration for KDE.
 
-Used to match Polymarket bucket structure, each 1°C bucket (e.g. "32°C" = [31.5, 32.5)) is a binary YES/NO contract.
+Used to match Polymarket bucket structure, each 1°C bucket (e.g. "32°C" = [32, 33)) is a binary YES/NO contract.
 
 ### Gaussian bucket probability
 ```

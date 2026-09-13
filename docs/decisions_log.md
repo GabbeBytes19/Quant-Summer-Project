@@ -25,7 +25,7 @@ Format per entry:
 
 ### Decision: Bucket probability formulation (P(a < T ≤ b))
 - **Alternatives considered:** binary threshold (P(T > threshold)), regression (predict exact temperature)
-- **Reason:** Polymarket Hong Kong temperature markets resolve to 1°C buckets (e.g. "32°C" means the high fell in [31.5, 32.5)). Matching the market structure exactly allows direct comparison of model probabilities to market implied probabilities. Each bucket is still a binary YES/NO contract, so proper scoring rules (Brier, log loss) and Kelly criterion still apply.
+- **Reason:** Polymarket Hong Kong temperature markets resolve to 1°C buckets (e.g. "32°C" means the high fell in [32, 33)). Matching the market structure exactly allows direct comparison of model probabilities to market implied probabilities. Each bucket is still a binary YES/NO contract, so proper scoring rules (Brier, log loss) and Kelly criterion still apply.
 - **Date:** 2026-07-08
 
 ### Decision: City changed to Hong Kong, threshold 30°C
@@ -107,7 +107,7 @@ Format per entry:
 - **Reason:** the two thresholds answer different questions, "is the raw mispricing big enough to notice" vs. "is it still big enough once costs are subtracted." A row can clear one and fail the other (e.g. raw edge is large but shrinks below the effective bar once spread/fees are subtracted). Both need to hold for a trade to actually be worth taking.
 - **Date:** 2026-08-11
 
-### Decision: flat `spread = 0.05` constant in `effective_edge()`, not real per market historical spread
+### Decision: flat assumed spread of 0.05 (`settings.ASSUMED_SPREAD`, read by `effective_edge()`), not real per market historical spread
 - **Alternatives considered:** Polymarket's own live `/spread`/`/book` CLOB endpoints (only cover currently open markets, every market here is closed, so these return "no orderbook exists" for all of them), **Dome API** (real, but Polymarket acquired Dome on 2026-02-19 and shut down all Dome APIs by 2026-04-28, confirmed dead, not just gated), **PolymarketData.co** (real, explicitly paid/tiered), **Bitquery** (provides trade data, not order book/bid ask data, wrong kind of data entirely, also $39+/month), and **pmxt** (real open source library, but its order book fetch appears live only with no historical/date parameter, plus its own API key + Node.js dependency)
 - **Reason:** full L2 order book history is expensive to store, so every option either charges, expects self hosted chain indexing, or only kept trade prices (which can't reconstruct a spread, since a fill price isn't the same as the surrounding unfilled bid/ask). Four independent sources hit the same wall. `0.05` (half of Polymarket's own "$0.10 = unusually wide, stop showing midpoint" threshold) is a reasonable moderate illiquidity assumption, not a random guess. `spread` only affects the `effective_edge_flag` eligibility filter. It is *not* deducted from a trade's realized `profit` (only `FEE_RATE` is).
 - **Date:** 2026-08-11 *(settled, not an open item to revisit without a genuinely new, verified free/simple source appearing)*

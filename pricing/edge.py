@@ -13,13 +13,9 @@ def prob_market_v_model(p_model,df_result):
 
 def effective_edge(edge):
     
-    #spread = edge["outcomePrices"].max() - edge["outcomePrices"].min()
-    #Spread history Polymarket do not provide, so we need to go with som other source
-    # Either let me collect , but thus there is little data much better to take from outside
-    spread = 0.05
     # costs reduce the magnitude of the edge on whichever side is bet, so apply them to abs(edge) and keep the sign
     effect_edge = edge.with_columns(
-        (pl.col("edge").sign() * (pl.col("edge").abs() - spread / 2 - settings.FEE_RATE)).alias("effective_edge")
+        (pl.col("edge").sign() * (pl.col("edge").abs() - settings.ASSUMED_SPREAD / 2 - settings.FEE_RATE)).alias("effective_edge")
     )
     
     effect_edge = effect_edge.with_columns(pl.when((pl.col("edge").abs() >= settings.MIN_EDGE) & (pl.col("effective_edge").abs() >= settings.MIN_EFFECTIVE_EDGE)).then(True).otherwise(False).alias("effective_edge_flag"))
